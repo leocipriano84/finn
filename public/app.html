@@ -226,11 +226,12 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {})
 }
 
-// Inicializa Supabase com config do servidor (nunca hardcoded)
+// Inicializa Supabase — anon key é pública por design do Supabase
 try {
-  const cfg = await fetch('/api/auth?action=config').then(r => r.json())
-  if (!cfg.supabaseUrl) throw new Error('config indisponível')
-  window.__supabase = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey)
+  window.__supabase = supabase.createClient(
+    'https://ybllxqhhbwxvapektypx.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibGx4cWhoYnd4dmFwZWt0eXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MTg2ODYsImV4cCI6MjA5NDk5NDY4Nn0.U1hgVlSi2bJEJzDV9ZrfOjoJyQuX8Q-sl6ZbnO_0Gc0'
+  )
 } catch {
   window.location.href = '/login.html'
   return
