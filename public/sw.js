@@ -1,7 +1,7 @@
 // public/sw.js — Service Worker do Finn
 // Permite uso offline, cache inteligente e notificações push
 
-const VERSION = 'v2'
+const VERSION = 'v3'
 const CACHE_NAME = `finn-${VERSION}`
 const STATIC_CACHE = `finn-static-${VERSION}`
 

@@ -212,6 +212,17 @@
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+<!-- Fallback: se o módulo JS falhar completamente, redireciona em 5s -->
+<script>
+  window.__appReady = false;
+  setTimeout(function() {
+    if (!window.__appReady) {
+      console.warn('[Finn] módulo não iniciou — redirecionando para login');
+      window.location.replace('/login.html');
+    }
+  }, 5000);
+</script>
+
 <script type="module">
 import { auth } from '/js/core/auth.js'
 import { store } from '/js/core/store.js'
@@ -220,6 +231,8 @@ import { fmt, date } from '/js/core/utils.js'
 import { Toast } from '/js/core/notifications.js'
 import { Theme } from '/js/core/theme.js'
 import { VoiceInput, parseVoiceText } from '/js/core/voice.js'
+
+console.log('[Finn] módulo iniciando, supabase disponível:', typeof supabase)
 
 // Registra service worker
 if ('serviceWorker' in navigator) {
@@ -232,23 +245,41 @@ try {
     'https://ybllxqhhbwxvapektypx.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibGx4cWhoYnd4dmFwZWt0eXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MTg2ODYsImV4cCI6MjA5NDk5NDY4Nn0.U1hgVlSi2bJEJzDV9ZrfOjoJyQuX8Q-sl6ZbnO_0Gc0'
   )
-} catch {
+  console.log('[Finn] Supabase client criado')
+} catch (e) {
+  console.error('[Finn] Falha ao criar Supabase client:', e)
   window.location.href = '/login.html'
-  return
+  document.getElementById('appLoading')?.remove()
+  throw e
 }
 
 // Verifica auth — com timeout de segurança para não travar em loading
 let session = null
 try {
+  console.log('[Finn] verificando sessão...')
   session = await Promise.race([
     auth.requireAuth(),
     new Promise((_, reject) => setTimeout(() => reject(new Error('auth-timeout')), 8000))
   ])
-} catch {
+  console.log('[Finn] sessão:', session ? 'autenticado' : 'sem sessão')
+} catch (e) {
+  console.warn('[Finn] auth falhou ou timeout:', e.message)
   window.location.href = '/login.html'
+  document.getElementById('appLoading')?.remove()
+  throw e
+}
+
+// Remove loading screen SEMPRE — com ou sem sessão
+const appLoading = document.getElementById('appLoading')
+appLoading?.classList.add('done')
+setTimeout(() => appLoading?.remove(), 400)
+
+if (!session) {
+  // requireAuth() já fez window.location.href = '/login.html'
   return
 }
-if (!session) return
+
+window.__appReady = true
 
 // Carrega usuário
 const user = session.user
@@ -403,12 +434,6 @@ window.openNewTransaction = async (type = 'expense') => {
   const mod = await import('/js/pages/transactions.js')
   mod.openTransactionModal?.({ type })
 }
-
-// Remove loading screen
-setTimeout(() => {
-  document.getElementById('appLoading')?.classList.add('done')
-  setTimeout(() => document.getElementById('appLoading')?.remove(), 400)
-}, 400)
 
 // Voz — inicializa e exibe botão se suportado
 if (VoiceInput.init()) {
