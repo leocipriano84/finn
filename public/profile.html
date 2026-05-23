@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil — Finn</title>
+  <link rel="stylesheet" href="/lib/app.css">
+  <style>
+    .profile-hero { display:flex; align-items:center; gap:20px; padding:24px; background:var(--card); border:1px solid var(--border); border-radius:16px; margin-bottom:24px; }
+    .avatar-wrap { position:relative; flex-shrink:0; }
+    .avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,var(--green),var(--blue)); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:700; color:#000; }
+    .avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+    .avatar-edit { position:absolute; bottom:0; right:0; width:26px; height:26px; background:var(--green); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; border:2px solid var(--bg); }
+    .profile-info h2 { font-family:'Syne',sans-serif; font-size:20px; margin:0 0 4px; }
+    .profile-info .email { color:var(--muted); font-size:14px; margin-bottom:8px; }
+    .plan-tag { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+    .plan-tag.pro { background:linear-gradient(135deg,rgba(0,245,160,.15),rgba(0,201,255,.15)); color:var(--green); border:1px solid rgba(0,245,160,.3); }
+    .plan-tag.free { background:rgba(107,114,128,.1); color:var(--muted); border:1px solid var(--border); }
+    .xp-row { display:flex; align-items:center; gap:12px; margin-top:12px; }
+    .xp-label { font-size:13px; color:var(--muted); }
+    .xp-bar-wrap { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+    .xp-bar { height:100%; background:linear-gradient(90deg,var(--green),var(--blue)); border-radius:4px; transition:width .6s; }
+    .xp-score { font-family:'Space Grotesk',sans-serif; font-size:13px; color:var(--green); font-weight:600; }
+    .settings-section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; margin-bottom:20px; }
+    .settings-section h3 { font-family:'Syne',sans-serif; font-size:15px; margin:0 0 20px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    .personality-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    .personality-card { padding:16px; border:2px solid var(--border); border-radius:12px; cursor:pointer; transition:.2s; text-align:center; }
+    .personality-card:hover { border-color:rgba(0,245,160,.3); background:rgba(0,245,160,.03); }
+    .personality-card.active { border-color:var(--green); background:rgba(0,245,160,.08); }
+    .personality-card .emoji { font-size:28px; display:block; margin-bottom:8px; }
+    .personality-card .p-name { font-weight:600; font-size:14px; }
+    .personality-card .p-desc { font-size:12px; color:var(--muted); margin-top:4px; }
+    .badge-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:12px; }
+    .badge { text-align:center; padding:16px 8px; border:1px solid var(--border); border-radius:12px; transition:.2s; }
+    .badge.unlocked { border-color:rgba(0,245,160,.3); background:rgba(0,245,160,.05); }
+    .badge.locked { opacity:.4; filter:grayscale(1); }
+    .badge .b-icon { font-size:28px; display:block; margin-bottom:6px; }
+    .badge .b-name { font-size:11px; font-weight:600; }
+    .badge .b-pts { font-size:11px; color:var(--green); font-family:'Space Grotesk',sans-serif; }
+    .notif-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border); }
+    .notif-row:last-child { border-bottom:none; }
+    .notif-info { }
+    .notif-info strong { display:block; font-size:14px; margin-bottom:2px; }
+    .notif-info span { font-size:12px; color:var(--muted); }
+    .toggle { position:relative; width:44px; height:24px; flex-shrink:0; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; inset:0; background:var(--border); border-radius:12px; cursor:pointer; transition:.3s; }
+    .toggle-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.3s; }
+    .toggle input:checked + .toggle-slider { background:var(--green); }
+    .toggle input:checked + .toggle-slider::before { transform:translateX(20px); }
+    .budget-category-list { display:flex; flex-direction:column; gap:8px; }
+    .budget-item { display:flex; align-items:center; gap:12px; }
+    .budget-item .b-label { width:130px; font-size:14px; flex-shrink:0; }
+    .budget-item input[type=number] { flex:1; }
+    .budget-item .b-pct { width:48px; text-align:right; font-size:13px; color:var(--muted); font-family:'Space Grotesk',sans-serif; }
+    .danger-zone { background:rgba(255,107,107,.05); border-color:rgba(255,107,107,.2); }
+    .danger-zone h3 { color:#FF6B6B; }
+    @media(max-width:768px) { .personality-grid { grid-template-columns:repeat(2,1fr); } .badge-grid { grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); } }
+  </style>
+</head>
+<body>
+<div class="app-wrap">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">F</span><span>Finn</span></div>
+    <ul class="sidebar-nav">
+      <li><a href="/dashboard.html"><span class="nav-icon">◈</span>Dashboard</a></li>
+      <li><a href="/transactions.html"><span class="nav-icon">↕</span>Transações</a></li>
+      <li><a href="/goals.html"><span class="nav-icon">◎</span>Metas</a></li>
+      <li><a href="/reports.html"><span class="nav-icon">≋</span>Relatórios</a></li>
+      <li><a href="/coach.html"><span class="nav-icon">✦</span>Coach IA</a></li>
+      <li><a href="/referrals.html"><span class="nav-icon">◇</span>Indicações</a></li>
+      <li><a href="/help.html"><span class="nav-icon">?</span>Ajuda</a></li>
+      <li class="active"><a href="/profile.html"><span class="nav-icon">○</span>Perfil</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info"><span id="sidebarName">...</span><span id="sidebarPlan" class="plan-badge">free</span></div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Perfil</h1>
+        <p class="page-subtitle">Suas configurações e conquistas</p>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="profile-hero" id="profileHero">
+      <div class="avatar-wrap">
+        <div class="avatar" id="avatarDisplay">U</div>
+        <div class="avatar-edit" onclick="document.getElementById('avatarInput').click()" title="Alterar foto">✎</div>
+        <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="handleAvatarChange(event)">
+      </div>
+      <div class="profile-info" style="flex:1">
+        <h2 id="profileName">Carregando...</h2>
+        <div class="email" id="profileEmail"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="plan-tag free" id="planTag">free</span>
+          <span id="streakBadge" class="badge-inline" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+        <div class="xp-row">
+          <span class="xp-label">XP</span>
+          <div class="xp-bar-wrap"><div class="xp-bar" id="xpBar" style="width:0%"></div></div>
+          <span class="xp-score" id="xpScore">0 pts</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <!-- Left column -->
+      <div>
+        <!-- Personal info -->
+        <div class="settings-section">
+          <h3>Informações Pessoais</h3>
+          <div class="form-group">
+            <label class="form-label">Nome</label>
+            <input type="text" class="form-input" id="fieldName" placeholder="Seu nome">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Renda Mensal</label>
+            <div style="position:relative">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px">R$</span>
+              <input type="number" class="form-input" id="fieldIncome" placeholder="0,00" style="padding-left:36px">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Início do Mês Financeiro</label>
+            <select class="form-input" id="fieldMonthStart">
+              <option value="1">Dia 1</option>
+              <option value="5">Dia 5</option>
+              <option value="10">Dia 10</option>
+              <option value="15">Dia 15</option>
+              <option value="20">Dia 20</option>
+              <option value="25">Dia 25</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="savePersonalInfo()">Salvar alterações</button>
+        </div>
+
+        <!-- Personality -->
+        <div class="settings-section">
+          <h3>Seu Perfil Financeiro</h3>
+          <div class="personality-grid" id="personalityGrid">
+            <div class="personality-card" data-id="impulsive" onclick="selectPersonality(this)">
+              <span class="emoji">🌪️</span>
+              <div class="p-name">Impulsivo</div>
+              <div class="p-desc">Gasta antes de pensar</div>
+            </div>
+            <div class="personality-card" data-id="aware" onclick="selectPersonality(this)">
+              <span class="emoji">👁️</span>
+              <div class="p-name">Consciente</div>
+              <div class="p-desc">Acompanha os gastos</div>
+            </div>
+            <div class="personality-card" data-id="planner" onclick="selectPersonality(this)">
+              <span class="emoji">📋</span>
+              <div class="p-name">Planejador</div>
+              <div class="p-desc">Organiza tudo com antecedência</div>
+            </div>
+            <div class="personality-card" data-id="optimizer" onclick="selectPersonality(this)">
+              <span class="emoji">⚡</span>
+              <div class="p-name">Otimizador</div>
+              <div class="p-desc">Maximiza cada centavo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscription -->
+        <div class="settings-section">
+          <h3>Assinatura</h3>
+          <div id="subContent">
+            <div class="skeleton" style="height:60px;border-radius:12px;margin-bottom:16px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div>
+        <!-- Achievements -->
+        <div class="settings-section">
+          <h3>Conquistas</h3>
+          <div class="badge-grid" id="badgeGrid">
+            <div class="skeleton" style="height:90px;border-radius:12px"></div>
+            <div class="skeleton" style="height:90px;border-radius:12px"></div>
+            <div class="skeleton" style="height:90px;border-radius:12px"></div>
+            <div class="skeleton" style="height:90px;border-radius:12px"></div>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="settings-section">
+          <h3>Notificações</h3>
+          <div class="notif-row">
+            <div class="notif-info">
+              <strong>Resumo semanal</strong>
+              <span>Toda segunda-feira</span>
+            </div>
+            <label class="toggle"><input type="checkbox" id="notifWeekly" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="notif-row">
+            <div class="notif-info">
+              <strong>Alertas de orçamento</strong>
+              <span>Quando atingir 80% do limite</span>
+            </div>
+            <label class="toggle"><input type="checkbox" id="notifBudget" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="notif-row">
+            <div class="notif-info">
+              <strong>Lembretes de metas</strong>
+              <span>Progresso mensal</span>
+            </div>
+            <label class="toggle"><input type="checkbox" id="notifGoals" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="notif-row">
+            <div class="notif-info">
+              <strong>Dicas do Coach</strong>
+              <span>Insights personalizados</span>
+            </div>
+            <label class="toggle"><input type="checkbox" id="notifCoach" onchange="saveNotifPrefs()"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- Data -->
+        <div class="settings-section">
+          <h3>Seus Dados</h3>
+          <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Exporte uma cópia de todos os seus dados financeiros registrados no Finn.</p>
+          <button class="btn btn-secondary" onclick="exportData()" style="width:100%;margin-bottom:10px">⬇ Exportar meus dados (JSON)</button>
+
+          <!-- Danger zone -->
+          <div class="settings-section danger-zone" style="margin-top:12px;padding:16px">
+            <h3>Zona de Perigo</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.</p>
+            <button class="btn btn-danger" onclick="openDeleteModal()" style="width:100%">Excluir minha conta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/dashboard.html" class="bottom-nav-item"><span>◈</span><span>Início</span></a>
+    <a href="/transactions.html" class="bottom-nav-item"><span>↕</span><span>Transações</span></a>
+    <a href="/goals.html" class="bottom-nav-item"><span>◎</span><span>Metas</span></a>
+    <a href="/reports.html" class="bottom-nav-item"><span>≋</span><span>Relatórios</span></a>
+    <a href="/coach.html" class="bottom-nav-item"><span>✦</span><span>Coach</span></a>
+    <a href="/profile.html" class="bottom-nav-item active"><span>○</span><span>Perfil</span></a>
+  </nav>
+</div>
+
+<!-- Delete account modal -->
+<div class="modal-overlay" id="deleteModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 style="color:#FF6B6B">⚠ Excluir Conta</h3>
+      <button class="btn-icon" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;color:var(--muted)">Esta ação é <strong style="color:var(--text)">permanente e irreversível</strong>. Todos os seus dados, transações, metas e conquistas serão excluídos.</p>
+      <div class="form-group">
+        <label class="form-label">Para confirmar, digite: <strong>EXCLUIR MINHA CONTA</strong></label>
+        <input type="text" class="form-input" id="deleteConfirm" placeholder="EXCLUIR MINHA CONTA">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="deleteAccount()">Excluir permanentemente</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+const ALL_ACHIEVEMENTS = [
+  { id:'first_transaction', title:'Primeiro Passo', icon:'🎯', points:10 },
+  { id:'ten_transactions', title:'Em Ritmo', icon:'🔥', points:25 },
+  { id:'hundred_transactions', title:'Mestre', icon:'💯', points:100 },
+  { id:'first_goal', title:'Sonhador', icon:'⭐', points:15 },
+  { id:'goal_completed', title:'Realizador', icon:'🏆', points:50 },
+  { id:'three_goals_completed', title:'Campeão', icon:'👑', points:100 },
+  { id:'streak_7', title:'7 Dias', icon:'📅', points:30 },
+  { id:'streak_30', title:'30 Dias', icon:'🗓️', points:100 },
+  { id:'positive_balance', title:'No Azul', icon:'💚', points:40 },
+  { id:'budget_set', title:'Planejador', icon:'📊', points:20 },
+  { id:'savings_20', title:'Poupador', icon:'🐷', points:60 },
+  { id:'pro_member', title:'Finn Pro', icon:'⚡', points:50 }
+]
+
+let profile = null
+
+async function init() {
+  await FinnAuth.checkAuth()
+  const user = await FinnAuth.getUser()
+  document.getElementById('profileEmail').textContent = user.email
+  FinnUI.setNavUser(user.email.split('@')[0], 'free')
+  loadProfile()
+}
+
+async function loadProfile() {
+  try {
+    profile = await FinnAuth.apiCall('/api/user/profile')
+    renderProfile(profile)
+    checkAchievements()
+  } catch(e) { FinnUI.toast('Erro ao carregar perfil', 'error') }
+}
+
+async function checkAchievements() {
+  try { await FinnAuth.apiCall('/api/user/gamification', { method:'POST' }) } catch(e) {}
+}
+
+function renderProfile(p) {
+  document.getElementById('profileName').textContent = p.name || 'Usuário'
+  document.getElementById('fieldName').value = p.name || ''
+  document.getElementById('fieldIncome').value = p.monthly_income || ''
+  document.getElementById('fieldMonthStart').value = p.financial_month_start || 1
+
+  const score = p.score || 0
+  const maxXP = 1000
+  document.getElementById('xpScore').textContent = score + ' pts'
+  document.getElementById('xpBar').style.width = Math.min(100, Math.round(score / maxXP * 100)) + '%'
+
+  if (p.streak_days > 0) {
+    document.getElementById('streakBadge').textContent = `🔥 ${p.streak_days} dias`
+  }
+
+  const planTag = document.getElementById('planTag')
+  if (p.plan === 'pro') {
+    planTag.className = 'plan-tag pro'
+    planTag.textContent = '⚡ Pro'
+  }
+
+  if (p.avatar_url) {
+    document.getElementById('avatarDisplay').innerHTML = `<img src="${p.avatar_url}" alt="Avatar">`
+    document.getElementById('sidebarAvatar').innerHTML = `<img src="${p.avatar_url}" alt="Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`
+  } else {
+    const initial = (p.name || 'U')[0].toUpperCase()
+    document.getElementById('avatarDisplay').textContent = initial
+    document.getElementById('sidebarAvatar').textContent = initial
+  }
+  document.getElementById('sidebarName').textContent = p.name || 'Usuário'
+  document.getElementById('sidebarPlan').textContent = p.plan || 'free'
+
+  if (p.personality_id) {
+    document.querySelectorAll('.personality-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.id === p.personality_id)
+    })
+  }
+
+  const prefs = p.notification_prefs || {}
+  document.getElementById('notifWeekly').checked = prefs.weekly !== false
+  document.getElementById('notifBudget').checked = prefs.budget !== false
+  document.getElementById('notifGoals').checked = prefs.goals !== false
+  document.getElementById('notifCoach').checked = prefs.coach !== false
+
+  renderSubscription(p)
+  loadAchievements(p)
+}
+
+function renderSubscription(p) {
+  const el = document.getElementById('subContent')
+  if (p.plan === 'pro') {
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:16px;background:rgba(0,245,160,.05);border:1px solid rgba(0,245,160,.2);border-radius:12px;margin-bottom:12px">
+        <span style="font-size:28px">⚡</span>
+        <div><strong>Finn Pro</strong><br><span style="font-size:13px;color:var(--muted)">Acesso completo a todos os recursos</span></div>
+      </div>
+      <button class="btn btn-secondary" onclick="manageSubscription()" style="width:100%">Gerenciar assinatura</button>
+    `
+  } else {
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;padding:16px;background:rgba(107,114,128,.05);border:1px solid var(--border);border-radius:12px;margin-bottom:12px">
+        <span style="font-size:28px">🔒</span>
+        <div><strong>Plano Gratuito</strong><br><span style="font-size:13px;color:var(--muted)">Recursos limitados</span></div>
+      </div>
+      <button class="btn btn-primary" onclick="upgradePro()" style="width:100%">⚡ Assinar Finn Pro — R$19,90/mês</button>
+    `
+  }
+}
+
+async function loadAchievements(p) {
+  let unlocked = []
+  try {
+    const data = await FinnAuth.apiCall('/api/user/gamification', { method:'POST' })
+    unlocked = data.unlocked || []
+  } catch(e) {}
+
+  const { data: existing } = await FinnAuth.getClient().from('user_achievements').select('achievement_id').eq('user_id', p.id || '')
+  const earnedSet = new Set((existing || []).map(a => a.achievement_id))
+
+  const grid = document.getElementById('badgeGrid')
+  grid.innerHTML = ALL_ACHIEVEMENTS.map(a => `
+    <div class="badge ${earnedSet.has(a.id) ? 'unlocked' : 'locked'}" title="${a.title}">
+      <span class="b-icon">${a.icon}</span>
+      <div class="b-name">${a.title}</div>
+      <div class="b-pts">${a.points} pts</div>
+    </div>
+  `).join('')
+}
+
+function selectPersonality(el) {
+  document.querySelectorAll('.personality-card').forEach(c => c.classList.remove('active'))
+  el.classList.add('active')
+  FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ personality_id: el.dataset.id }) })
+    .then(() => FinnUI.toast('Perfil atualizado'))
+    .catch(() => FinnUI.toast('Erro ao salvar', 'error'))
+}
+
+async function savePersonalInfo() {
+  const name = document.getElementById('fieldName').value.trim()
+  const income = parseFloat(document.getElementById('fieldIncome').value) || null
+  const monthStart = parseInt(document.getElementById('fieldMonthStart').value)
+  if (!name) return FinnUI.toast('Nome é obrigatório', 'warning')
+  try {
+    await FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ name, monthly_income: income, financial_month_start: monthStart }) })
+    FinnUI.toast('Alterações salvas')
+    document.getElementById('profileName').textContent = name
+    document.getElementById('sidebarName').textContent = name
+  } catch(e) { FinnUI.toast('Erro ao salvar', 'error') }
+}
+
+async function saveNotifPrefs() {
+  const prefs = {
+    weekly: document.getElementById('notifWeekly').checked,
+    budget: document.getElementById('notifBudget').checked,
+    goals: document.getElementById('notifGoals').checked,
+    coach: document.getElementById('notifCoach').checked
+  }
+  try {
+    await FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ notification_prefs: prefs }) })
+  } catch(e) {}
+}
+
+async function handleAvatarChange(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) return FinnUI.toast('Imagem muito grande (máx 2MB)', 'warning')
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    const base64 = e.target.result
+    try {
+      const res = await FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ avatar_url: base64 }) })
+      document.getElementById('avatarDisplay').innerHTML = `<img src="${base64}" alt="Avatar">`
+      FinnUI.toast('Foto atualizada')
+    } catch(err) { FinnUI.toast('Erro ao salvar foto', 'error') }
+  }
+  reader.readAsDataURL(file)
+}
+
+async function exportData() {
+  try {
+    const token = await FinnAuth.getToken()
+    const res = await fetch('/api/user/export-data', { headers: { Authorization: 'Bearer ' + token } })
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `finn-meus-dados-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch(e) { FinnUI.toast('Erro ao exportar dados', 'error') }
+}
+
+async function upgradePro() {
+  try {
+    const data = await FinnAuth.apiCall('/api/stripe/checkout', { method:'POST' })
+    if (data.url) window.location.href = data.url
+  } catch(e) { FinnUI.toast('Erro ao iniciar checkout', 'error') }
+}
+
+async function manageSubscription() {
+  try {
+    const data = await FinnAuth.apiCall('/api/stripe/portal', { method:'POST' })
+    if (data.url) window.location.href = data.url
+  } catch(e) { FinnUI.toast('Erro ao abrir portal', 'error') }
+}
+
+function openDeleteModal() { document.getElementById('deleteModal').style.display = 'flex' }
+function closeDeleteModal() { document.getElementById('deleteModal').style.display = 'none'; document.getElementById('deleteConfirm').value = '' }
+
+async function deleteAccount() {
+  const confirm = document.getElementById('deleteConfirm').value.trim()
+  if (confirm !== 'EXCLUIR MINHA CONTA') return FinnUI.toast('Digite exatamente: EXCLUIR MINHA CONTA', 'warning')
+  try {
+    await FinnAuth.apiCall('/api/user/delete', { method:'DELETE', body: JSON.stringify({ confirm }) })
+    await FinnAuth.logout()
+    window.location.href = '/login.html'
+  } catch(e) { FinnUI.toast('Erro ao excluir conta', 'error') }
+}
+
+init()
+</script>
+</body>
+</html>

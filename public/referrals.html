@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indicações — Finn</title>
+  <link rel="stylesheet" href="/lib/app.css">
+  <style>
+    .ref-hero { background:linear-gradient(135deg,rgba(0,245,160,.1),rgba(0,201,255,.1)); border:1px solid rgba(0,245,160,.2); border-radius:20px; padding:32px; text-align:center; margin-bottom:28px; }
+    .ref-hero h2 { font-family:'Syne',sans-serif; font-size:28px; margin:0 0 8px; background:linear-gradient(135deg,var(--green),var(--blue)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .ref-hero p { color:var(--muted); font-size:15px; max-width:480px; margin:0 auto 24px; line-height:1.6; }
+    .ref-code-box { display:inline-flex; align-items:center; gap:12px; background:var(--card); border:2px solid rgba(0,245,160,.3); border-radius:14px; padding:14px 20px; }
+    .ref-code-box .code-text { font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; letter-spacing:.1em; color:var(--green); }
+    .ref-code-box .copy-btn { padding:8px 16px; background:rgba(0,245,160,.15); border:1px solid rgba(0,245,160,.3); border-radius:8px; color:var(--green); font-size:13px; font-weight:600; cursor:pointer; transition:.2s; }
+    .ref-code-box .copy-btn:hover { background:rgba(0,245,160,.25); }
+    .share-buttons { display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+    .share-btn { display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; border:none; transition:.2s; }
+    .share-whatsapp { background:#25D366; color:#000; }
+    .share-twitter { background:#1DA1F2; color:#fff; }
+    .share-copy-link { background:var(--card); color:var(--text); border:1px solid var(--border); }
+    .share-whatsapp:hover { opacity:.9; }
+    .share-twitter:hover { opacity:.9; }
+    .share-copy-link:hover { border-color:var(--green); color:var(--green); }
+    .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+    .stat-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; text-align:center; }
+    .stat-card .s-value { font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:700; color:var(--text); margin-bottom:4px; }
+    .stat-card .s-label { font-size:12px; color:var(--muted); }
+    .stat-card.highlight .s-value { color:var(--green); }
+    .level-section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; margin-bottom:28px; }
+    .level-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+    .level-badge { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:24px; border:3px solid var(--border); flex-shrink:0; }
+    .level-info h3 { font-family:'Syne',sans-serif; font-size:18px; margin:0 0 4px; }
+    .level-info span { font-size:13px; color:var(--muted); }
+    .level-track { display:flex; align-items:center; gap:12px; margin-top:12px; }
+    .level-track-bar { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+    .level-track-fill { height:100%; border-radius:4px; transition:width .6s; }
+    .level-track-label { font-size:12px; color:var(--muted); white-space:nowrap; }
+    .levels-list { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+    .level-item { padding:14px; border:1px solid var(--border); border-radius:10px; text-align:center; transition:.2s; }
+    .level-item.current { border-color:var(--green); background:rgba(0,245,160,.05); }
+    .level-item .li-icon { font-size:20px; margin-bottom:6px; }
+    .level-item .li-name { font-size:12px; font-weight:600; margin-bottom:2px; }
+    .level-item .li-req { font-size:11px; color:var(--muted); }
+    .rewards-section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; margin-bottom:28px; }
+    .rewards-section h3 { font-family:'Syne',sans-serif; font-size:16px; margin-bottom:16px; }
+    .reward-item { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; }
+    .reward-item .r-icon { font-size:20px; flex-shrink:0; }
+    .reward-item .r-info { flex:1; }
+    .reward-item .r-info strong { font-size:14px; display:block; margin-bottom:2px; }
+    .reward-item .r-info span { font-size:12px; color:var(--muted); }
+    .reward-item .r-value { font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; color:var(--green); }
+    .credits-box { background:rgba(0,245,160,.05); border:1px solid rgba(0,245,160,.2); border-radius:12px; padding:16px; margin-top:12px; display:flex; align-items:center; gap:12px; }
+    .credits-box .credit-amt { font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:var(--green); }
+    .referrals-table { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+    .referrals-table h3 { font-family:'Syne',sans-serif; font-size:16px; padding:20px 24px 0; margin:0 0 16px; }
+    .ref-list { }
+    .ref-row { display:flex; align-items:center; gap:12px; padding:14px 24px; border-top:1px solid var(--border); }
+    .ref-email { flex:1; font-size:14px; }
+    .ref-email span { font-size:12px; color:var(--muted); display:block; margin-top:2px; }
+    .ref-status { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+    .ref-status.pending { background:rgba(255,193,7,.1); color:#FFC107; border:1px solid rgba(255,193,7,.2); }
+    .ref-status.converted { background:rgba(0,245,160,.1); color:var(--green); border:1px solid rgba(0,245,160,.2); }
+    .ref-empty { text-align:center; padding:40px 20px; color:var(--muted); }
+    .ref-empty .re-icon { font-size:36px; display:block; margin-bottom:12px; }
+    @media(max-width:768px) { .stats-row { grid-template-columns:repeat(2,1fr); } .levels-list { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+<div class="app-wrap">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">F</span><span>Finn</span></div>
+    <ul class="sidebar-nav">
+      <li><a href="/dashboard.html"><span class="nav-icon">◈</span>Dashboard</a></li>
+      <li><a href="/transactions.html"><span class="nav-icon">↕</span>Transações</a></li>
+      <li><a href="/goals.html"><span class="nav-icon">◎</span>Metas</a></li>
+      <li><a href="/reports.html"><span class="nav-icon">≋</span>Relatórios</a></li>
+      <li><a href="/coach.html"><span class="nav-icon">✦</span>Coach IA</a></li>
+      <li class="active"><a href="/referrals.html"><span class="nav-icon">◇</span>Indicações</a></li>
+      <li><a href="/help.html"><span class="nav-icon">?</span>Ajuda</a></li>
+      <li><a href="/profile.html"><span class="nav-icon">○</span>Perfil</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info"><span id="sidebarName">...</span><span id="sidebarPlan" class="plan-badge">free</span></div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Programa de Indicações</h1>
+        <p class="page-subtitle">Indique amigos e ganhe créditos</p>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="ref-hero">
+      <h2>Indique e Ganhe R$30</h2>
+      <p>Para cada amigo que assinar o Finn Pro com seu link, você recebe R$30 em créditos para usar na sua próxima fatura.</p>
+      <div class="ref-code-box" id="codeBox">
+        <span class="code-text" id="codeText">...</span>
+        <button class="copy-btn" onclick="copyCode()">Copiar</button>
+      </div>
+      <div class="share-buttons">
+        <a class="share-btn share-whatsapp" id="shareWhatsApp" href="#" target="_blank" onclick="return shareWhatsApp()">
+          <span>💬</span> WhatsApp
+        </a>
+        <a class="share-btn share-twitter" id="shareTwitter" href="#" target="_blank" onclick="return shareTwitter()">
+          <span>🐦</span> Twitter
+        </a>
+        <button class="share-btn share-copy-link" onclick="copyShareLink()">
+          <span>🔗</span> Copiar link
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="s-value" id="statTotal">-</div>
+        <div class="s-label">Total indicados</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="s-value" id="statConverted">-</div>
+        <div class="s-label">Convertidos</div>
+      </div>
+      <div class="stat-card">
+        <div class="s-value" id="statPending">-</div>
+        <div class="s-label">Aguardando</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="s-value" id="statCredits">-</div>
+        <div class="s-label">Créditos disponíveis</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
+      <!-- Level -->
+      <div class="level-section">
+        <div class="level-header">
+          <div class="level-badge" id="levelBadge" style="border-color:var(--muted)">🌱</div>
+          <div class="level-info">
+            <h3 id="levelName">Iniciante</h3>
+            <span id="levelDesc">0 a 2 indicações convertidas</span>
+          </div>
+        </div>
+        <div class="level-track">
+          <span class="level-track-label" id="levelProgressText">0/3</span>
+          <div class="level-track-bar"><div class="level-track-fill" id="levelFill" style="width:0%;background:var(--green)"></div></div>
+          <span class="level-track-label" id="nextLevelName">Amigo</span>
+        </div>
+        <div class="levels-list">
+          <div class="level-item" id="lvl-iniciante">
+            <div class="li-icon">🌱</div>
+            <div class="li-name">Iniciante</div>
+            <div class="li-req">0 - 2</div>
+          </div>
+          <div class="level-item" id="lvl-amigo">
+            <div class="li-icon">👥</div>
+            <div class="li-name">Amigo</div>
+            <div class="li-req">3 - 9</div>
+          </div>
+          <div class="level-item" id="lvl-embaixador">
+            <div class="li-icon">🌟</div>
+            <div class="li-name">Embaixador</div>
+            <div class="li-req">10 - 24</div>
+          </div>
+          <div class="level-item" id="lvl-lenda">
+            <div class="li-icon">👑</div>
+            <div class="li-name">Lenda</div>
+            <div class="li-req">25+</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rewards -->
+      <div class="rewards-section">
+        <h3>Como funciona</h3>
+        <div class="reward-item">
+          <span class="r-icon">🔗</span>
+          <div class="r-info">
+            <strong>1. Compartilhe seu link</strong>
+            <span>Envie seu código único para amigos</span>
+          </div>
+        </div>
+        <div class="reward-item">
+          <span class="r-icon">✅</span>
+          <div class="r-info">
+            <strong>2. Amigo se cadastra e assina</strong>
+            <span>Quando seu indicado assinar o Pro</span>
+          </div>
+        </div>
+        <div class="reward-item">
+          <span class="r-icon">💰</span>
+          <div class="r-info">
+            <strong>3. Você ganha R$30</strong>
+            <span>Crédito automático na sua conta</span>
+          </div>
+          <span class="r-value">R$30</span>
+        </div>
+        <div class="credits-box">
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Seus créditos acumulados</div>
+            <div class="credit-amt" id="creditsDisplay">R$0</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="applyCreditsBtn" onclick="applyCredits()" disabled>Aplicar no Pro</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referrals list -->
+    <div class="referrals-table">
+      <h3>Suas Indicações</h3>
+      <div id="refList">
+        <div style="padding:20px 24px">
+          <div class="skeleton" style="height:50px;border-radius:8px;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:50px;border-radius:8px"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/dashboard.html" class="bottom-nav-item"><span>◈</span><span>Início</span></a>
+    <a href="/transactions.html" class="bottom-nav-item"><span>↕</span><span>Transações</span></a>
+    <a href="/goals.html" class="bottom-nav-item"><span>◎</span><span>Metas</span></a>
+    <a href="/reports.html" class="bottom-nav-item"><span>≋</span><span>Relatórios</span></a>
+    <a href="/coach.html" class="bottom-nav-item"><span>✦</span><span>Coach</span></a>
+    <a href="/profile.html" class="bottom-nav-item"><span>○</span><span>Perfil</span></a>
+  </nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+const LEVEL_ICONS = { Iniciante:'🌱', Amigo:'👥', Embaixador:'🌟', Lenda:'👑' }
+const LEVEL_IDS = { Iniciante:'iniciante', Amigo:'amigo', Embaixador:'embaixador', Lenda:'lenda' }
+let refCode = ''
+let stats = null
+
+async function init() {
+  await FinnAuth.checkAuth()
+  const user = await FinnAuth.getUser()
+  FinnUI.setNavUser(user.email.split('@')[0], 'free')
+  try {
+    const profile = await FinnAuth.apiCall('/api/user/profile')
+    FinnUI.setNavUser(profile.name || user.email.split('@')[0], profile.plan)
+  } catch(e) {}
+  loadData()
+}
+
+async function loadData() {
+  try {
+    const [codeData, statsData] = await Promise.all([
+      FinnAuth.apiCall('/api/referrals/code'),
+      FinnAuth.apiCall('/api/referrals/stats')
+    ])
+    refCode = codeData.code
+    stats = statsData
+    renderCode(codeData.code)
+    renderStats(statsData)
+    renderReferrals(statsData.referrals || [])
+  } catch(e) {
+    FinnUI.toast('Erro ao carregar dados', 'error')
+  }
+}
+
+function renderCode(code) {
+  document.getElementById('codeText').textContent = code
+}
+
+function renderStats(s) {
+  document.getElementById('statTotal').textContent = s.total_referrals
+  document.getElementById('statConverted').textContent = s.converted
+  document.getElementById('statPending').textContent = s.pending
+  document.getElementById('statCredits').textContent = 'R$' + (s.credits || 0)
+  document.getElementById('creditsDisplay').textContent = 'R$' + (s.credits || 0)
+
+  const applyBtn = document.getElementById('applyCreditsBtn')
+  applyBtn.disabled = s.credits <= 0
+
+  const level = s.level || { name:'Iniciante', color:'var(--muted)' }
+  const icons = { Iniciante:'🌱', Amigo:'👥', Embaixador:'🌟', Lenda:'👑' }
+  document.getElementById('levelBadge').textContent = icons[level.name] || '🌱'
+  document.getElementById('levelBadge').style.borderColor = level.color
+  document.getElementById('levelName').textContent = level.name
+  document.getElementById('levelProgressText').textContent = `${s.converted}/${s.next_level?.min || '∞'}`
+
+  const fill = document.getElementById('levelFill')
+  fill.style.width = (s.progress_to_next || 0) + '%'
+  fill.style.background = level.color
+
+  if (s.next_level) {
+    document.getElementById('nextLevelName').textContent = s.next_level.name
+  } else {
+    document.getElementById('nextLevelName').textContent = 'Máximo!'
+  }
+
+  document.querySelectorAll('.level-item').forEach(el => el.classList.remove('current'))
+  const levelKey = LEVEL_IDS[level.name]
+  if (levelKey) document.getElementById('lvl-' + levelKey)?.classList.add('current')
+}
+
+function renderReferrals(list) {
+  const container = document.getElementById('refList')
+  if (!list.length) {
+    container.innerHTML = `<div class="ref-empty"><span class="re-icon">👥</span><strong>Nenhuma indicação ainda</strong><p>Compartilhe seu código e acompanhe aqui</p></div>`
+    return
+  }
+  container.innerHTML = list.map(r => `
+    <div class="ref-row">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700">
+        ${(r.referred_email || 'U')[0].toUpperCase()}
+      </div>
+      <div class="ref-email">
+        ${maskEmail(r.referred_email)}
+        <span>${FinnUI.formatDate(r.created_at)}</span>
+      </div>
+      <span class="ref-status ${r.status}">${r.status === 'converted' ? '✓ Convertido' : '⏳ Aguardando'}</span>
+      ${r.status === 'converted' ? '<span style="font-size:13px;color:var(--green);font-family:\'Space Grotesk\',sans-serif;font-weight:600">+R$30</span>' : ''}
+    </div>
+  `).join('')
+}
+
+function maskEmail(email) {
+  if (!email) return 'Usuário'
+  const [user, domain] = email.split('@')
+  return user.slice(0,2) + '***@' + domain
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(refCode).then(() => FinnUI.toast('Código copiado!'))
+}
+
+function copyShareLink() {
+  const link = `${location.origin}/signup.html?ref=${refCode}`
+  navigator.clipboard.writeText(link).then(() => FinnUI.toast('Link copiado!'))
+}
+
+function shareWhatsApp() {
+  const link = `${location.origin}/signup.html?ref=${refCode}`
+  const text = encodeURIComponent(`Use meu código ${refCode} e ganhe desconto no Finn, o app de finanças pessoais mais inteligente! 👉 ${link}`)
+  window.open(`https://wa.me/?text=${text}`, '_blank')
+  return false
+}
+
+function shareTwitter() {
+  const link = `${location.origin}/signup.html?ref=${refCode}`
+  const text = encodeURIComponent(`Estou usando o @FinnFinanceiro para cuidar das minhas finanças! Use meu código ${refCode} e ganhe desconto. ${link}`)
+  window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank')
+  return false
+}
+
+async function applyCredits() {
+  if (!stats || stats.credits <= 0) return
+  const confirmed = await FinnUI.confirm({ title:'Aplicar créditos', message:`Aplicar R$${stats.credits} de créditos na sua próxima fatura do Finn Pro?`, confirmText:'Aplicar' })
+  if (!confirmed) return
+  try {
+    await FinnAuth.apiCall('/api/referrals/stripe-apply', { method:'POST' })
+    FinnUI.toast(`R$${stats.credits} aplicados com sucesso!`)
+    loadData()
+  } catch(e) {
+    FinnUI.toast('Erro ao aplicar créditos', 'error')
+  }
+}
+
+init()
+</script>
+</body>
+</html>

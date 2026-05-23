@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bem-vindo ao Finn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--green:#00F5A0;--blue:#00C9FF;--red:#FF6B6B;--bg:#050508;--card:#0d0d14;--border:#1a1a2a;--text:#f0f0f5;--muted:#6b7280;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px;}
+  .onboard-wrap{width:100%;max-width:520px;padding-top:40px;padding-bottom:40px;}
+  .logo-row{display:flex;align-items:center;gap:10px;margin-bottom:48px;justify-content:center;text-decoration:none;}
+  .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--bg);}
+  .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text);letter-spacing:-0.02em;}
+  /* Steps progress */
+  .steps-bar{display:flex;gap:6px;margin-bottom:40px;}
+  .step-dot{flex:1;height:4px;border-radius:100px;background:var(--border);transition:all 0.4s;}
+  .step-dot.done{background:var(--green);}
+  .step-dot.active{background:linear-gradient(90deg,var(--green),var(--blue));}
+  /* Cards */
+  .step-card{display:none;animation:fadeSlide 0.4s ease;}
+  .step-card.active{display:block;}
+  @keyframes fadeSlide{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .step-emoji{font-size:52px;margin-bottom:16px;display:block;}
+  .step-title{font-family:'Syne',sans-serif;font-weight:700;font-size:26px;letter-spacing:-0.02em;margin-bottom:10px;}
+  .step-sub{color:var(--muted);font-size:16px;line-height:1.6;margin-bottom:32px;}
+  /* Profile choices */
+  .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;}
+  .profile-opt{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all 0.2s;text-align:left;}
+  .profile-opt:hover{border-color:rgba(0,245,160,0.3);}
+  .profile-opt.selected{border-color:var(--green);background:rgba(0,245,160,0.06);}
+  .profile-opt-emoji{font-size:28px;margin-bottom:8px;display:block;}
+  .profile-opt-title{font-weight:600;font-size:14px;margin-bottom:4px;}
+  .profile-opt-text{font-size:12px;color:var(--muted);}
+  /* Amount input */
+  .amount-wrap{position:relative;margin-bottom:28px;}
+  .amount-prefix{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--muted);font-size:16px;}
+  .amount-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 16px 16px 44px;font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;color:var(--text);outline:none;transition:border-color 0.2s;min-height:56px;}
+  .amount-input:focus{border-color:var(--green);}
+  .suggestions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;}
+  .sug-btn{background:var(--card);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-size:13px;color:var(--muted);cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .sug-btn:hover{border-color:var(--green);color:var(--green);}
+  /* Transaction quick add */
+  .tx-form{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:28px;}
+  .type-toggle{display:flex;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px;margin-bottom:16px;}
+  .type-btn{flex:1;padding:9px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.2s;}
+  .type-btn.active-income{background:rgba(0,245,160,0.15);color:var(--green);}
+  .type-btn.active-expense{background:rgba(255,107,107,0.15);color:var(--red);}
+  .form-group{margin-bottom:14px;}
+  .form-label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em;}
+  .form-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;min-height:44px;}
+  .form-input::placeholder{color:#3d3d4a;}
+  .form-input:focus{border-color:var(--green);}
+  /* Bank connect */
+  .bank-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:14px;}
+  .bank-card:hover{border-color:rgba(0,245,160,0.3);}
+  .bank-card.selected{border-color:var(--green);background:rgba(0,245,160,0.05);}
+  .bank-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(255,255,255,0.06);flex-shrink:0;}
+  .bank-name{font-weight:600;font-size:14px;}
+  .bank-sub{font-size:12px;color:var(--muted);}
+  /* Bottom */
+  .btn-row{display:flex;gap:10px;align-items:center;}
+  .btn-back{background:transparent;border:1px solid var(--border);color:var(--muted);padding:12px 20px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all 0.2s;min-height:44px;}
+  .btn-back:hover{border-color:var(--text);color:var(--text);}
+  .btn-next{flex:1;background:linear-gradient(135deg,var(--green),var(--blue));color:var(--bg);border:none;border-radius:10px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.2s;min-height:44px;}
+  .btn-next:hover{box-shadow:0 0 24px rgba(0,245,160,0.3);}
+  .btn-skip{background:transparent;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:10px;min-height:44px;}
+  .btn-skip:hover{color:var(--text);}
+  .step-counter{font-size:12px;color:var(--muted);margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<div class="onboard-wrap">
+  <a href="/" class="logo-row">
+    <div class="logo-icon">F</div>
+    <span class="logo-text">finn</span>
+  </a>
+
+  <div class="steps-bar">
+    <div class="step-dot active" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+  </div>
+
+  <!-- Step 0: Boas-vindas -->
+  <div class="step-card active" id="step0">
+    <span class="step-emoji">👋</span>
+    <h1 class="step-title">Olá, <span id="welcomeName">amigo</span>!</h1>
+    <p class="step-sub">Vamos configurar seu Finn em 3 passos rápidos. Vai levar menos de 2 minutos e você já começa a ter controle total das suas finanças.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">
+        <span style="font-size:22px">🏦</span>
+        <div><div style="font-weight:600;font-size:14px">Sua conta bancária</div><div style="font-size:12px;color:var(--muted)">Para acompanhar seu saldo real</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">
+        <span style="font-size:22px">💳</span>
+        <div><div style="font-weight:600;font-size:14px">Seu cartão de crédito</div><div style="font-size:12px;color:var(--muted)">Para controlar suas faturas</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;">
+        <span style="font-size:22px">🚀</span>
+        <div><div style="font-weight:600;font-size:14px">Categorias automáticas</div><div style="font-size:12px;color:var(--muted)">Criamos tudo para você usar de imediato</div></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-next" onclick="next()">Vamos começar →</button>
+    </div>
+  </div>
+
+  <!-- Step 1: Criar conta bancária -->
+  <div class="step-card" id="step1">
+    <span style="font-size:12px;color:var(--muted);margin-bottom:8px;display:block;">Passo 1 de 3</span>
+    <h2 class="step-title">Adicione sua conta bancária</h2>
+    <p class="step-sub">Informe o banco e saldo atual para começarmos a acompanhar seu dinheiro.</p>
+    <div class="form-group">
+      <label class="form-label">Banco</label>
+      <select class="form-input" id="accBank">
+        <option value="">Selecionar banco</option>
+        <option value="260">🟣 Nubank</option>
+        <option value="341">🧡 Itaú</option>
+        <option value="237">🔴 Bradesco</option>
+        <option value="033">🔴 Santander</option>
+        <option value="104">🔵 Caixa Econômica</option>
+        <option value="001">💛 Banco do Brasil</option>
+        <option value="077">🟠 Inter</option>
+        <option value="336">⬛ C6 Bank</option>
+        <option value="208">🔷 BTG Pactual</option>
+        <option value="290">🟢 PagBank</option>
+        <option value="380">🔵 PicPay</option>
+        <option value="323">🟢 Mercado Pago</option>
+        <option value="655">🟡 Neon</option>
+        <option value="next">🟢 Next</option>
+        <option value="000">🏦 Outro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome da conta</label>
+      <input type="text" class="form-input" id="accName" placeholder="Ex: Conta Corrente, Nubank...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Saldo atual (R$)</label>
+      <div style="position:relative">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;font-family:'Space Grotesk',sans-serif;">R$</span>
+        <input type="number" class="form-input" id="accBalance" placeholder="0,00" style="padding-left:36px" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prev()">← Voltar</button>
+      <button class="btn-next" id="accSaveBtn" onclick="saveAccount()">Continuar →</button>
+      <button class="btn-skip" onclick="next()">Pular por agora</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Criar primeiro cartão -->
+  <div class="step-card" id="step2">
+    <span style="font-size:12px;color:var(--muted);margin-bottom:8px;display:block;">Passo 2 de 3</span>
+    <h2 class="step-title">Adicione seu cartão de crédito</h2>
+    <p class="step-sub">Controle suas faturas e saiba exatamente quanto você deve. Você pode pular e adicionar depois.</p>
+    <div class="form-group">
+      <label class="form-label">Nome do cartão</label>
+      <input type="text" class="form-input" id="cardName" placeholder="Ex: Nubank Roxinho, Itaú Platinum...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Bandeira</label>
+        <select class="form-input" id="cardFlag">
+          <option value="visa">Visa</option>
+          <option value="mastercard">Mastercard</option>
+          <option value="elo">Elo</option>
+          <option value="amex">Amex</option>
+          <option value="hipercard">Hipercard</option>
+          <option value="other">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Limite (R$)</label>
+        <input type="number" class="form-input" id="cardLimit" placeholder="5.000,00" min="0" step="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha dia</label>
+        <select class="form-input" id="cardClosing">
+          ${Array.from({length:28},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vence dia</label>
+        <select class="form-input" id="cardDue">
+          ${Array.from({length:28},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prev()">← Voltar</button>
+      <button class="btn-next" id="cardSaveBtn" onclick="saveCard()">Continuar →</button>
+      <button class="btn-skip" onclick="finish()">Pular por agora</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Tudo pronto! -->
+  <div class="step-card" id="step3">
+    <span class="step-emoji">🎉</span>
+    <h2 class="step-title">Tudo pronto!</h2>
+    <p class="step-sub">Seu Finn está configurado. Veja o que foi criado:</p>
+    <div id="summaryItems" style="display:flex;flex-direction:column;gap:10px;margin-bottom:32px"></div>
+    <div id="seedingMsg" style="display:none;margin-bottom:20px;padding:12px;background:rgba(0,245,160,0.06);border:1px solid rgba(0,245,160,0.2);border-radius:10px;font-size:13px;color:var(--green)">
+      ✨ Criando categorias padrão...
+    </div>
+    <div class="btn-row">
+      <button class="btn-next" id="startBtn" onclick="startApp()">Começar a usar o Finn →</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = 'https://yblixqhhbwxvapektypx.supabase.co'
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibGl4cWhoYnd4dmFwZWt0eXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MTg2ODYsImV4cCI6MjA5NDk5NDY4Nn0.U1hgVlSi2bJEJzDV9ZrfOjoJyQuX8Q-sl6ZbnO_0Gc0'
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+
+  const TOTAL_STEPS = 4
+  let currentStep = 0
+  let createdAccount = null
+  let createdCard = null
+
+  const BANK_NAMES = {
+    '260':'Nubank','341':'Itaú','237':'Bradesco','033':'Santander',
+    '104':'Caixa Econômica','001':'Banco do Brasil','077':'Inter',
+    '336':'C6 Bank','208':'BTG Pactual','290':'PagBank',
+    '380':'PicPay','323':'Mercado Pago','655':'Neon','next':'Next','000':'Outro'
+  }
+  const FLAG_NAMES = {visa:'Visa',mastercard:'Mastercard',elo:'Elo',amex:'Amex',hipercard:'Hipercard',other:'Outro'}
+
+  async function getToken() {
+    const { data } = await supabase.auth.getSession()
+    return data?.session?.access_token
+  }
+
+  async function apiCall(path, opts = {}) {
+    const token = await getToken()
+    const res = await fetch(path, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    })
+    if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Erro') }
+    return res.status === 204 ? null : res.json()
+  }
+
+  async function init() {
+    const { data } = await supabase.auth.getSession()
+    if (!data?.session) { window.location.href = '/login.html'; return }
+    const name = data.session.user.user_metadata?.name?.split(' ')[0] || 'amigo'
+    document.getElementById('welcomeName').textContent = name
+  }
+  init()
+
+  function updateDots() {
+    for (let i = 0; i < TOTAL_STEPS; i++) {
+      const dot = document.getElementById('dot' + i)
+      if (!dot) continue
+      dot.className = i < currentStep ? 'step-dot done' : i === currentStep ? 'step-dot active' : 'step-dot'
+    }
+  }
+
+  function showStep(n) {
+    document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'))
+    document.getElementById('step' + n).classList.add('active')
+    currentStep = n
+    updateDots()
+    window.scrollTo(0, 0)
+  }
+
+  function next() { if (currentStep < TOTAL_STEPS - 1) showStep(currentStep + 1) }
+  function prev() { if (currentStep > 0) showStep(currentStep - 1) }
+
+  async function saveAccount() {
+    const bank_code = document.getElementById('accBank').value
+    const name = document.getElementById('accName').value.trim()
+    const balance = parseFloat(document.getElementById('accBalance').value) || 0
+
+    const btn = document.getElementById('accSaveBtn')
+    btn.disabled = true; btn.textContent = 'Salvando...'
+    try {
+      createdAccount = await apiCall('/api/accounts', {
+        method: 'POST',
+        body: {
+          name: name || (BANK_NAMES[bank_code] || 'Minha Conta'),
+          bank_code,
+          bank_name: BANK_NAMES[bank_code] || '',
+          type: 'checking',
+          initial_balance: balance,
+          current_balance: balance,
+          is_default: true
+        }
+      })
+      next()
+    } catch (e) {
+      alert('Erro ao salvar conta: ' + e.message)
+    } finally {
+      btn.disabled = false; btn.textContent = 'Continuar →'
+    }
+  }
+
+  async function saveCard() {
+    const name = document.getElementById('cardName').value.trim()
+    const flag = document.getElementById('cardFlag').value
+    const limit_amount = parseFloat(document.getElementById('cardLimit').value) || 0
+    const closing_day = parseInt(document.getElementById('cardClosing').value)
+    const due_day = parseInt(document.getElementById('cardDue').value)
+
+    if (!name) { alert('Informe o nome do cartão'); return }
+
+    const btn = document.getElementById('cardSaveBtn')
+    btn.disabled = true; btn.textContent = 'Salvando...'
+    try {
+      createdCard = await apiCall('/api/cards', {
+        method: 'POST',
+        body: {
+          name,
+          flag,
+          limit_amount,
+          closing_day,
+          due_day,
+          account_id: createdAccount?.id || null,
+          is_main: true
+        }
+      })
+      await buildSummaryAndFinish()
+    } catch (e) {
+      alert('Erro ao salvar cartão: ' + e.message)
+    } finally {
+      btn.disabled = false; btn.textContent = 'Continuar →'
+    }
+  }
+
+  async function finish() {
+    await buildSummaryAndFinish()
+  }
+
+  async function buildSummaryAndFinish() {
+    const items = []
+    if (createdAccount) {
+      items.push({ icon: '🏦', text: `Conta: <strong>${createdAccount.name}</strong>`, sub: `Saldo: R$ ${(createdAccount.initial_balance||0).toFixed(2).replace('.',',')}` })
+    }
+    if (createdCard) {
+      items.push({ icon: '💳', text: `Cartão: <strong>${createdCard.name}</strong>`, sub: `${FLAG_NAMES[createdCard.flag]||'Outro'} · Fecha dia ${createdCard.closing_day} · Vence dia ${createdCard.due_day}` })
+    }
+    if (!items.length) {
+      items.push({ icon: '⚙️', text: 'Configuração básica', sub: 'Você pode adicionar contas e cartões depois' })
+    }
+    items.push({ icon: '🏷️', text: 'Categorias padrão', sub: 'Serão criadas automaticamente' })
+
+    const summaryEl = document.getElementById('summaryItems')
+    summaryEl.innerHTML = items.map(i => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px">
+        <span style="font-size:22px">${i.icon}</span>
+        <div><div style="font-size:14px">${i.text}</div><div style="font-size:12px;color:var(--muted)">${i.sub}</div></div>
+        <span style="margin-left:auto;color:var(--green);font-size:16px">✓</span>
+      </div>
+    `).join('')
+
+    showStep(3)
+  }
+
+  async function startApp() {
+    const btn = document.getElementById('startBtn')
+    btn.disabled = true; btn.textContent = 'Preparando...'
+    document.getElementById('seedingMsg').style.display = 'block'
+    try {
+      await apiCall('/api/categories', { method: 'POST', body: { action: 'defaults' } })
+    } catch { /* se já existirem, tudo bem */ }
+    await apiCall('/api/user', { method: 'PUT', body: { action: 'profile', onboarding_done: true } }).catch(()=>{})
+    window.location.href = '/app.html'
+  }
+</script>
+</body>
+</html>

@@ -1,125 +1,128 @@
-// api/coach.js
-// Coach de IA do Finn — exclusivo para usuários Pro
-// Protegido pelo middleware withPro
-
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
-import { withPro } from '../lib/withPro'
+import Anthropic from '@anthropic-ai/sdk'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-)
+async function getUserId(req) {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) return null
+  const { data } = await supabase.auth.getUser(token)
+  return data?.user?.id ?? null
+}
 
-// Limite de mensagens por dia no plano Pro
-const DAILY_LIMIT = 50
+async function getFinancialContext(userId, month) {
+  const [y, m] = (month || new Date().toISOString().slice(0,7)).split('-').map(Number)
+  const start = `${y}-${String(m).padStart(2,'0')}-01`
+  const end = new Date(y, m, 0).toISOString().slice(0,10)
 
-async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
+  const [txRes, profileRes] = await Promise.all([
+    supabase.from('transactions')
+      .select('type, amount, status, due_date, description, categories!category_id(name)')
+      .eq('user_id', userId).gte('due_date', start).lte('due_date', end),
+    supabase.from('profiles').select('name, score, personality_id, xp, level').eq('id', userId).single()
+  ])
 
-  const { message, history = [] } = req.body
+  const txs = txRes.data || []
+  const profile = profileRes.data || {}
 
-  if (!message || typeof message !== 'string' || message.length > 1000) {
-    return res.status(400).json({ error: 'Mensagem inválida' })
-  }
+  const income  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0)
+  const expense = txs.filter(t => t.type === 'expense' || t.type === 'expense_card').reduce((s,t) => s + Number(t.amount), 0)
+  const pending = txs.filter(t => t.status === 'pending' && t.due_date < new Date().toISOString().slice(0,10))
 
-  const userId = req.user.id
-
-  // Verifica limite diário
-  const today = new Date().toISOString().split('T')[0]
-  const { count } = await supabase
-    .from('coach_messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .gte('created_at', `${today}T00:00:00`)
-
-  if (count >= DAILY_LIMIT) {
-    return res.status(429).json({
-      error: `Limite de ${DAILY_LIMIT} mensagens por dia atingido. Volta amanhã! 😄`
-    })
-  }
-
-  // Busca resumo financeiro do usuário para dar contexto à IA
-  const { data: transactions } = await supabase
-    .from('transactions')
-    .select('amount, type, category, date')
-    .eq('user_id', userId)
-    .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-    .order('date', { ascending: false })
-    .limit(50)
-
-  const totalExpenses = transactions
-    ?.filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0) || 0
-
-  const totalIncome = transactions
-    ?.filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0) || 0
-
-  const byCategory = transactions
-    ?.filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount
-      return acc
-    }, {})
-
-  const financialContext = `
-Resumo financeiro do usuário nos últimos 30 dias:
-- Receita total: R$ ${totalIncome.toFixed(2)}
-- Despesas totais: R$ ${totalExpenses.toFixed(2)}
-- Saldo: R$ ${(totalIncome - totalExpenses).toFixed(2)}
-- Gastos por categoria: ${JSON.stringify(byCategory, null, 2)}
-  `.trim()
-
-  // Monta o histórico de mensagens para a IA
-  const messages = [
-    ...history.slice(-10), // últimas 10 mensagens para contexto
-    { role: 'user', content: message }
-  ]
-
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
-      system: `Você é o Finn, um coach financeiro pessoal brasileiro, empático e direto.
-Seu objetivo é ajudar o usuário a melhorar sua saúde financeira de forma prática.
-
-Contexto financeiro atual do usuário:
-${financialContext}
-
-Regras de comportamento:
-- Seja amigável, use linguagem simples e brasileira
-- Dê conselhos práticos e específicos, não genéricos
-- Quando identificar um padrão negativo, sugira uma ação concreta
-- Use emojis com moderação para tornar a conversa mais leve
-- Nunca invente dados — use apenas o contexto fornecido
-- Respostas curtas e diretas (máx 3 parágrafos)
-- Não seja condescendente — trate o usuário como adulto inteligente`,
-      messages
-    })
-
-    const reply = response.content[0].text
-
-    // Salva a mensagem no histórico
-    await supabase.from('coach_messages').insert({
-      user_id: userId,
-      role: 'user',
-      content: message
-    })
-    await supabase.from('coach_messages').insert({
-      user_id: userId,
-      role: 'assistant',
-      content: reply
-    })
-
-    return res.status(200).json({ reply })
-
-  } catch (err) {
-    console.error('[coach] Anthropic error:', err)
-    return res.status(500).json({ error: 'Erro ao consultar o coach. Tente novamente.' })
+  return {
+    income, expense, balance: income - expense,
+    pending_count: pending.length,
+    pending_amount: pending.reduce((s,t) => s + Number(t.amount), 0),
+    profile, month: month || new Date().toISOString().slice(0,7)
   }
 }
 
-export default withPro(handler)
+export default async function handler(req, res) {
+  const userId = await getUserId(req)
+  if (!userId) return res.status(401).json({ error: 'Não autenticado' })
+
+  const body = req.body || {}
+  const action = req.method === 'GET' ? req.query.action : body.action
+
+  // Chat com IA
+  if (req.method === 'POST' && action === 'chat') {
+    const { message, history = [] } = body
+    if (!message) return res.status(400).json({ error: 'Mensagem obrigatória' })
+
+    const ctx = await getFinancialContext(userId)
+    const fmt = (v) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
+
+    // Mock se não tiver chave Anthropic
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(200).json({
+        reply: `Olá! Analisando suas finanças: receitas de ${fmt(ctx.income)}, despesas de ${fmt(ctx.expense)}, saldo de ${fmt(ctx.balance)}.${ctx.pending_count > 0 ? ` Você tem ${ctx.pending_count} lançamento(s) pendente(s).` : ''} (Coach em modo demo — configure ANTHROPIC_API_KEY para IA real 🤖)`,
+        mock: true
+      })
+    }
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const systemPrompt = `Você é o Coach Finn, assistente financeiro pessoal brasileiro, empático e direto.
+Contexto financeiro (${ctx.month}): Receitas: ${fmt(ctx.income)} | Despesas: ${fmt(ctx.expense)} | Saldo: ${fmt(ctx.balance)} | Pendentes em atraso: ${ctx.pending_count} (${fmt(ctx.pending_amount)})
+Responda em português, seja conciso (máx 3 parágrafos), prático e amigável. Use emojis com moderação.`
+
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [...history.slice(-8).map(h => ({ role: h.role, content: h.content })), { role: 'user', content: message }]
+      })
+
+      const reply = response.content[0].text
+
+      // Salva histórico
+      await supabase.from('coach_messages').insert([
+        { user_id: userId, role: 'user', content: message },
+        { user_id: userId, role: 'assistant', content: reply }
+      ]).catch(() => {}) // ignora erros se tabela não existir ainda
+
+      return res.status(200).json({ reply })
+    } catch (e) {
+      return res.status(500).json({ error: 'Erro ao consultar a IA', details: e.message })
+    }
+  }
+
+  if (req.method === 'GET') {
+    if (action === 'profile') {
+      const ctx = await getFinancialContext(userId)
+      let personality = 'conscious', score = 50
+      if (ctx.income > 0) {
+        const rate = ctx.balance / ctx.income
+        if (rate >= 0.2)      { personality = 'optimizer';  score = 85 }
+        else if (rate >= 0.1) { personality = 'planner';    score = 70 }
+        else if (rate >= 0)   { personality = 'conscious';  score = 55 }
+        else                  { personality = 'impulsive';  score = 25 }
+      }
+      const map = {
+        optimizer:  { name: 'Otimizador', emoji: '🦅', desc: 'Você é disciplinado e estratégico' },
+        planner:    { name: 'Planejador',  emoji: '🐝', desc: 'Você planeja bem e mantém controle' },
+        conscious:  { name: 'Consciente',  emoji: '🦊', desc: 'Você está no caminho certo' },
+        impulsive:  { name: 'Impulsivo',   emoji: '🦁', desc: 'Oportunidade de melhorar os hábitos' },
+      }
+      return res.status(200).json({ personality, score, ...map[personality] })
+    }
+
+    if (action === 'report') {
+      const ctx = await getFinancialContext(userId)
+      const fmt = (v) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v)
+      const insights = []
+      if (ctx.balance < 0)         insights.push({ type: 'warning', text: `Despesas (${fmt(ctx.expense)}) superaram receitas (${fmt(ctx.income)}) este mês.` })
+      if (ctx.pending_count > 0)   insights.push({ type: 'alert',   text: `${ctx.pending_count} lançamento(s) vencido(s) no total de ${fmt(ctx.pending_amount)}.` })
+      if (ctx.balance > 0)         insights.push({ type: 'success', text: `Você economizou ${fmt(ctx.balance)} este mês! 🎉` })
+      return res.status(200).json({ month: ctx.month, income: ctx.income, expense: ctx.expense, balance: ctx.balance, insights })
+    }
+
+    if (action === 'history') {
+      const { data } = await supabase.from('coach_messages').select('*')
+        .eq('user_id', userId).order('created_at', { ascending: true }).limit(50)
+      return res.status(200).json(data || [])
+    }
+  }
+
+  return res.status(405).json({ error: 'Método não permitido' })
+}

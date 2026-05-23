@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+  <meta name="theme-color" content="#050508" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Finn">
+  <meta name="description" content="Finn — Coach financeiro inteligente">
+  <title>Finn</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/animations.css">
+
+  <!-- Tema aplicado antes do render para evitar flash -->
+  <script type="module" src="/js/core/theme.js"></script>
+
+  <style>
+    .app-loading {
+      position: fixed; inset: 0;
+      background: var(--color-bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+      z-index: 9999;
+      transition: opacity 0.3s;
+    }
+    .app-loading.done { opacity: 0; pointer-events: none; }
+    .app-loading-logo {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: var(--color-green);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 800;
+      font-size: 26px; color: #050508;
+      animation: float 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div class="app-loading" id="appLoading">
+  <div class="app-loading-logo">F</div>
+  <div class="spinner spinner-lg"></div>
+</div>
+
+<!-- Overlay do sidebar mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- App shell -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">F</div>
+      <span class="sidebar-logo-name">Finn</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">Principal</div>
+
+      <div class="sidebar-item" data-page="dashboard">
+        <span class="sidebar-item-icon">📊</span>
+        <span>Resumo</span>
+      </div>
+      <div class="sidebar-item" data-page="accounts">
+        <span class="sidebar-item-icon">🏦</span>
+        <span>Contas</span>
+      </div>
+      <div class="sidebar-item" data-page="transactions">
+        <span class="sidebar-item-icon">💸</span>
+        <span>Transações</span>
+      </div>
+      <div class="sidebar-item" data-page="credit-cards">
+        <span class="sidebar-item-icon">💳</span>
+        <span>Cartões de crédito</span>
+      </div>
+
+      <div class="sidebar-section">Planejar</div>
+
+      <div class="sidebar-item" data-page="budgets">
+        <span class="sidebar-item-icon">📊</span>
+        <span>Orçamentos</span>
+      </div>
+      <div class="sidebar-item" data-page="goals">
+        <span class="sidebar-item-icon">🎯</span>
+        <span>Objetivos</span>
+      </div>
+
+      <div class="sidebar-section">Analisar</div>
+
+      <div class="sidebar-item" data-page="reports">
+        <span class="sidebar-item-icon">📋</span>
+        <span>Relatórios</span>
+      </div>
+      <div class="sidebar-item" data-page="annual">
+        <span class="sidebar-item-icon">📅</span>
+        <span>Visão anual</span>
+      </div>
+      <div class="sidebar-item" data-page="charts">
+        <span class="sidebar-item-icon">📈</span>
+        <span>Gráficos</span>
+      </div>
+      <div class="sidebar-item" data-page="categories">
+        <span class="sidebar-item-icon">🏷️</span>
+        <span>Categorias</span>
+      </div>
+
+      <div class="sidebar-section">Mais</div>
+
+      <div class="sidebar-item" data-page="tools">
+        <span class="sidebar-item-icon">🔧</span>
+        <span>Ferramentas</span>
+      </div>
+      <div class="sidebar-item" data-page="settings">
+        <span class="sidebar-item-icon">⚙️</span>
+        <span>Configurações</span>
+      </div>
+      <div class="sidebar-item" data-page="upgrade" style="color:var(--color-yellow)">
+        <span class="sidebar-item-icon">💎</span>
+        <span>Finn Pro</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-user" id="sidebarUser" data-page="profile">
+      <div class="sidebar-avatar" id="sidebarAvatar">?</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sidebarName">Carregando...</div>
+        <div class="sidebar-user-plan" id="sidebarPlan">Grátis</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <div class="main-content">
+
+    <!-- Header mobile -->
+    <div class="mobile-header">
+      <button class="btn btn-icon" id="menuBtn" aria-label="Menu">☰</button>
+      <div class="month-nav" id="mobileMonthNav"></div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-icon voice-btn" id="voiceBtn" aria-label="Lançamento por voz" title="Lançamento por voz" style="display:none">🎤</button>
+        <button class="btn btn-icon" data-theme-toggle title="Tema" aria-label="Alternar tema">🌙</button>
+        <button class="btn btn-icon" id="mobileNewBtn" aria-label="Novo lançamento">＋</button>
+      </div>
+    </div>
+
+    <!-- Page header (desktop) -->
+    <div class="page-header" id="pageHeader">
+      <div class="page-header-left">
+        <h1 class="page-title" id="pageTitle">Resumo</h1>
+        <div class="month-nav" id="desktopMonthNav"></div>
+      </div>
+      <div class="page-header-actions" id="pageActions">
+        <div class="sync-status" id="syncStatus" title="Status de sincronização">
+          <span class="sync-dot synced" id="syncDot"></span>
+          <span class="sync-label" id="syncLabel">Salvo</span>
+        </div>
+        <button class="btn btn-icon" data-theme-toggle title="Tema" aria-label="Alternar tema">🌙</button>
+        <button class="btn btn-primary btn-sm" id="newTransactionBtn">+ Novo lançamento</button>
+      </div>
+    </div>
+
+    <!-- Área de conteúdo da página -->
+    <div class="page-body" id="pageContent" style="padding:0;overflow-y:auto;flex:1;"></div>
+
+  </div>
+</div>
+
+<!-- FAB mobile -->
+<button class="fab" id="fabBtn" aria-label="Novo lançamento">＋</button>
+<div class="fab-menu" id="fabMenu">
+  <div class="fab-item" id="fabVoiceItem" style="display:none" data-fab="voice">
+    <span class="fab-item-label">Por voz</span>
+    <div class="fab-item-btn" style="background:var(--color-green-dim);color:var(--color-green);">🎤</div>
+  </div>
+  <div class="fab-item" data-fab="transfer">
+    <span class="fab-item-label">Transferência</span>
+    <div class="fab-item-btn" style="background:var(--color-yellow-dim);color:var(--color-yellow);">⇄</div>
+  </div>
+  <div class="fab-item" data-fab="income">
+    <span class="fab-item-label">Receita</span>
+    <div class="fab-item-btn" style="background:var(--color-green-dim);color:var(--color-green);">＋</div>
+  </div>
+  <div class="fab-item" data-fab="expense">
+    <span class="fab-item-label">Despesa</span>
+    <div class="fab-item-btn" style="background:var(--color-red-dim);color:var(--color-red);">－</div>
+  </div>
+  <div class="fab-item" data-fab="card">
+    <span class="fab-item-label">Despesa cartão</span>
+    <div class="fab-item-btn" style="background:var(--color-blue-dim);color:var(--color-blue);">💳</div>
+  </div>
+</div>
+
+<!-- Container de toasts -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<script type="module">
+import { auth } from '/js/core/auth.js'
+import { store } from '/js/core/store.js'
+import { router } from '/js/core/router.js'
+import { fmt, date } from '/js/core/utils.js'
+import { Toast } from '/js/core/notifications.js'
+import { Theme } from '/js/core/theme.js'
+import { VoiceInput, parseVoiceText } from '/js/core/voice.js'
+
+// Inicializa Supabase
+const SUPABASE_URL = 'https://ybllxqhhbwxvapektypx.supabase.co'
+const SUPABASE_ANON_KEY = document.head.querySelector('meta[name="supabase-key"]')?.content
+  || window.__SUPABASE_ANON_KEY
+  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibGx4cWhoYnd4dmFwZWt0eXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzQzMjEsImV4cCI6MjA2MzQ1MDMyMX0.QLMntGzPjpGF8_2m3Vxr1SJ7RMkmB9qRqFGhP-U5jCg'
+
+window.__supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// Registra service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {})
+}
+
+// Verifica auth
+const session = await auth.requireAuth()
+if (!session) return
+
+// Carrega usuário
+const user = session.user
+store.set('user', user)
+store.set('session', session)
+
+// Atualiza sidebar
+const nameEl = document.getElementById('sidebarName')
+const planEl = document.getElementById('sidebarPlan')
+const avatarEl = document.getElementById('sidebarAvatar')
+
+const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário'
+if (nameEl) nameEl.textContent = userName
+if (planEl) planEl.textContent = user.user_metadata?.plan === 'pro' ? '⭐ Pro' : 'Grátis'
+if (avatarEl) {
+  const initials = userName.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()
+  avatarEl.textContent = initials
+}
+
+// Navegador de mês
+function renderMonthNav(container) {
+  if (!container) return
+  container.innerHTML = `
+    <button class="month-nav-btn" id="${container.id}Prev">‹</button>
+    <span class="month-nav-label" id="${container.id}Label"></span>
+    <button class="month-nav-btn" id="${container.id}Next">›</button>
+  `
+  const labelEl = document.getElementById(`${container.id}Label`)
+  const prevBtn = document.getElementById(`${container.id}Prev`)
+  const nextBtn = document.getElementById(`${container.id}Next`)
+
+  function updateLabel() {
+    const m = store.getMonth()
+    const [y, mo] = m.split('-').map(Number)
+    const d = new Date(y, mo - 1, 1)
+    labelEl.textContent = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      .replace(/^\w/, c => c.toUpperCase())
+  }
+  updateLabel()
+  store.subscribe('currentMonth', updateLabel)
+
+  prevBtn.addEventListener('click', () => {
+    store.setMonth(date.addMonths(store.getMonth(), -1))
+  })
+  nextBtn.addEventListener('click', () => {
+    store.setMonth(date.addMonths(store.getMonth(), 1))
+  })
+  labelEl.addEventListener('click', () => {
+    // Voltar para mês atual
+    store.setMonth(date.currentMonth())
+  })
+}
+
+renderMonthNav(document.getElementById('desktopMonthNav'))
+renderMonthNav(document.getElementById('mobileMonthNav'))
+
+// Título da página conforme rota
+const PAGE_TITLES = {
+  dashboard:    'Resumo',
+  accounts:     'Contas',
+  transactions: 'Transações',
+  'credit-cards': 'Cartões de crédito',
+  budgets:      'Orçamentos',
+  goals:        'Objetivos',
+  reports:      'Relatórios',
+  annual:       'Visão anual',
+  charts:       'Gráficos',
+  categories:   'Categorias',
+  tools:        'Ferramentas',
+  settings:     'Configurações',
+  profile:      'Perfil',
+  coach:        'Coach Finn',
+  upgrade:      'Finn Pro',
+}
+store.subscribe('page', (page) => {
+  const titleEl = document.getElementById('pageTitle')
+  if (titleEl) titleEl.textContent = PAGE_TITLES[page] || page
+})
+
+// Sidebar items — navegação
+document.querySelectorAll('[data-page]').forEach(el => {
+  el.addEventListener('click', () => {
+    const page = el.dataset.page
+    if (!page) return
+    router.navigate(page)
+    // Fecha sidebar mobile
+    document.getElementById('sidebar')?.classList.remove('open')
+    document.getElementById('sidebarOverlay')?.classList.remove('open')
+  })
+})
+
+// Menu hamburger mobile
+document.getElementById('menuBtn')?.addEventListener('click', () => {
+  document.getElementById('sidebar')?.classList.toggle('open')
+  document.getElementById('sidebarOverlay')?.classList.toggle('open')
+})
+document.getElementById('sidebarOverlay')?.addEventListener('click', () => {
+  document.getElementById('sidebar')?.classList.remove('open')
+  document.getElementById('sidebarOverlay')?.classList.remove('open')
+})
+
+// FAB
+const fabBtn = document.getElementById('fabBtn')
+const fabMenu = document.getElementById('fabMenu')
+fabBtn?.addEventListener('click', () => {
+  fabBtn.classList.toggle('open')
+  fabMenu?.classList.toggle('open')
+})
+document.addEventListener('click', e => {
+  if (!fabBtn?.contains(e.target) && !fabMenu?.contains(e.target)) {
+    fabBtn?.classList.remove('open')
+    fabMenu?.classList.remove('open')
+  }
+})
+document.querySelectorAll('[data-fab]').forEach(el => {
+  el.addEventListener('click', () => {
+    fabBtn?.classList.remove('open')
+    fabMenu?.classList.remove('open')
+    if (el.dataset.fab === 'voice') {
+      startVoiceCapture()
+    } else {
+      openNewTransaction(el.dataset.fab)
+    }
+  })
+})
+
+// Botão novo lançamento (desktop)
+document.getElementById('newTransactionBtn')?.addEventListener('click', () => openNewTransaction('expense'))
+document.getElementById('mobileNewBtn')?.addEventListener('click', () => openNewTransaction('expense'))
+
+// Registra rotas (lazy loading)
+router.register('dashboard',    () => import('/js/pages/dashboard.js'))
+router.register('accounts',     () => import('/js/pages/accounts.js'))
+router.register('transactions', () => import('/js/pages/transactions.js'))
+router.register('credit-cards', () => import('/js/pages/credit-cards.js'))
+router.register('budgets',      () => import('/js/pages/budgets.js'))
+router.register('goals',        () => import('/js/pages/goals.js'))
+router.register('reports',      () => import('/js/pages/reports.js'))
+router.register('annual',       () => import('/js/pages/annual.js'))
+router.register('charts',       () => import('/js/pages/charts.js'))
+router.register('categories',   () => import('/js/pages/categories.js'))
+router.register('tools',        () => import('/js/pages/tools.js'))
+router.register('settings',     () => import('/js/pages/settings.js'))
+router.register('profile',      () => import('/js/pages/profile.js'))
+router.register('coach',        () => import('/js/pages/coach.js'))
+
+// Inicia router
+router.init(document.getElementById('pageContent'))
+
+// Função global para abrir modal de novo lançamento
+window.openNewTransaction = async (type = 'expense') => {
+  const mod = await import('/js/pages/transactions.js')
+  mod.openTransactionModal?.({ type })
+}
+
+// Remove loading screen
+setTimeout(() => {
+  document.getElementById('appLoading')?.classList.add('done')
+  setTimeout(() => document.getElementById('appLoading')?.remove(), 400)
+}, 400)
+
+// Voz — inicializa e exibe botão se suportado
+if (VoiceInput.init()) {
+  document.getElementById('voiceBtn')?.style.setProperty('display', '')
+  document.getElementById('fabVoiceItem')?.style.setProperty('display', '')
+}
+
+async function startVoiceCapture() {
+  const btn = document.getElementById('voiceBtn')
+  btn?.classList.add('recording')
+  Toast.info('Escutando... fale o lançamento')
+  try {
+    const text = await VoiceInput.start()
+    btn?.classList.remove('recording')
+    Toast.info(`Entendido: "${text}"`)
+    const parsed = parseVoiceText(text)
+    const mod = await import('/js/pages/transactions.js')
+    mod.openTransactionModal?.({
+      type: parsed.type,
+      prefill: {
+        amount: parsed.amount,
+        description: parsed.description,
+        category_hint: parsed.category_hint,
+      }
+    })
+  } catch (e) {
+    btn?.classList.remove('recording')
+    Toast.error('Não consegui ouvir. Tente novamente.')
+  }
+}
+
+document.getElementById('voiceBtn')?.addEventListener('click', startVoiceCapture)
+
+// Tema — toggle nos botões do header
+document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+  btn.addEventListener('click', () => Theme.toggle())
+})
+
+// Auth state change
+auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT' || !session) {
+    window.location.href = '/login.html'
+  }
+})
+</script>
+</body>
+</html>

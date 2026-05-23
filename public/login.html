@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar — Finn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--green:#00F5A0;--blue:#00C9FF;--red:#FF6B6B;--bg:#050508;--card:#0d0d14;--border:#1a1a2a;--text:#f0f0f5;--muted:#6b7280;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .auth-wrap{width:100%;max-width:420px;}
+  .auth-logo{display:flex;align-items:center;gap:10px;text-decoration:none;margin-bottom:40px;justify-content:center;}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--bg);}
+  .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--text);letter-spacing:-0.02em;}
+  .auth-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;}
+  .auth-title{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-bottom:6px;}
+  .auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+  .form-group{margin-bottom:16px;}
+  .form-label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;}
+  .form-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;min-height:44px;}
+  .form-input::placeholder{color:#3d3d4a;}
+  .form-input:focus{border-color:var(--green);}
+  .form-input.error{border-color:var(--red);}
+  .pass-wrap{position:relative;}
+  .pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;}
+  .remember-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:12px;}
+  .remember-left{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);}
+  .checkbox{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
+  .forgot-link{font-size:13px;color:var(--green);text-decoration:none;white-space:nowrap;}
+  .forgot-link:hover{text-decoration:underline;}
+  .btn-submit{width:100%;background:linear-gradient(135deg,var(--green),var(--blue));color:var(--bg);border:none;border-radius:10px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.2s;min-height:44px;}
+  .btn-submit:hover:not(:disabled){box-shadow:0 0 24px rgba(0,245,160,0.3);transform:translateY(-1px);}
+  .btn-submit:disabled{opacity:0.5;cursor:not-allowed;}
+  .divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
+  .divider-line{flex:1;height:1px;background:var(--border);}
+  .divider-text{font-size:12px;color:var(--muted);}
+  .auth-footer{text-align:center;margin-top:20px;font-size:14px;color:var(--muted);}
+  .auth-footer a{color:var(--green);text-decoration:none;font-weight:500;}
+  .global-error{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:var(--red);padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;display:none;}
+  .global-error.show{display:block;}
+  .global-success{background:rgba(0,245,160,0.1);border:1px solid rgba(0,245,160,0.3);color:var(--green);padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;display:none;}
+  .global-success.show{display:block;}
+  /* Reset modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;width:100%;max-width:380px;}
+  .modal h3{font-family:'Syne',sans-serif;font-size:18px;margin-bottom:8px;}
+  .modal p{color:var(--muted);font-size:14px;margin-bottom:20px;}
+  .modal-actions{display:flex;gap:10px;}
+  .btn-outline{flex:1;padding:11px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all 0.2s;}
+  .btn-outline:hover{border-color:var(--green);color:var(--green);}
+  .btn-green{flex:1;padding:11px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--blue));color:var(--bg);font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;border:none;transition:all 0.2s;}
+</style>
+</head>
+<body>
+
+<div class="auth-wrap">
+  <a href="/" class="auth-logo">
+    <div class="logo-icon">F</div>
+    <span class="logo-text">finn</span>
+  </a>
+
+  <div class="auth-card">
+    <h1 class="auth-title">Bem-vindo de volta</h1>
+    <p class="auth-sub">Continue sua jornada financeira.</p>
+
+    <div class="global-error" id="globalError"></div>
+    <div class="global-success" id="globalSuccess"></div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="email" placeholder="seu@email.com" autocomplete="email" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <div class="pass-wrap">
+          <input type="password" class="form-input" id="password" placeholder="Sua senha" autocomplete="current-password" required>
+          <button type="button" class="pass-toggle" onclick="togglePass()">👁</button>
+        </div>
+      </div>
+
+      <div class="remember-row">
+        <label class="remember-left">
+          <input type="checkbox" class="checkbox" id="remember" checked>
+          Manter conectado
+        </label>
+        <a href="#" class="forgot-link" onclick="openReset();return false;">Esqueci a senha</a>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Entrar</button>
+    </form>
+  </div>
+
+  <div class="auth-footer">
+    Não tem conta? <a href="/signup.html">Criar conta grátis</a>
+  </div>
+</div>
+
+<!-- Reset modal -->
+<div class="modal-overlay hidden" id="resetModal">
+  <div class="modal">
+    <h3>Recuperar senha</h3>
+    <p>Digite seu e-mail e enviaremos um link para criar uma nova senha.</p>
+    <div class="form-group">
+      <label class="form-label">E-mail</label>
+      <input type="email" class="form-input" id="resetEmail" placeholder="seu@email.com">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="closeReset()">Cancelar</button>
+      <button class="btn-green" onclick="sendReset()">Enviar link</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+  (async () => {
+    const session = await FinnAuth.getSession();
+    if (session) {
+      const params = new URLSearchParams(window.location.search);
+      window.location.href = params.get('next') || '/dashboard.html';
+    }
+  })();
+
+  function togglePass() {
+    const inp = document.getElementById('password');
+    const btn = document.querySelector('.pass-toggle');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  }
+
+  function setError(msg) {
+    const el = document.getElementById('globalError');
+    el.textContent = msg;
+    el.classList.toggle('show', !!msg);
+    document.getElementById('globalSuccess').classList.remove('show');
+  }
+
+  function setSuccess(msg) {
+    const el = document.getElementById('globalSuccess');
+    el.textContent = msg;
+    el.classList.toggle('show', !!msg);
+    document.getElementById('globalError').classList.remove('show');
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('submitBtn');
+
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
+    setError('');
+
+    try {
+      const client = await FinnAuth.getClient();
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      const params = new URLSearchParams(window.location.search);
+      window.location.href = params.get('next') || '/dashboard.html';
+    } catch (err) {
+      let msg = 'Erro ao entrar. Verifique suas credenciais.';
+      if (err.message?.includes('Invalid login credentials')) msg = 'E-mail ou senha incorretos.';
+      else if (err.message?.includes('Email not confirmed')) msg = 'Confirme seu e-mail antes de entrar.';
+      setError(msg);
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+    }
+  }
+
+  function openReset() {
+    document.getElementById('resetModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('resetEmail').focus(), 100);
+  }
+
+  function closeReset() {
+    document.getElementById('resetModal').classList.add('hidden');
+  }
+
+  async function sendReset() {
+    const email = document.getElementById('resetEmail').value.trim();
+    if (!email.includes('@')) return;
+    try {
+      const client = await FinnAuth.getClient();
+      await client.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/profile.html#reset'
+      });
+      closeReset();
+      setSuccess('Link enviado! Verifique seu e-mail (inclusive spam).');
+    } catch {
+      setError('Erro ao enviar e-mail. Tente novamente.');
+    }
+  }
+
+  document.getElementById('resetModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeReset();
+  });
+</script>
+</body>
+</html>

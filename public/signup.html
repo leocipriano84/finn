@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar conta — Finn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --green:#00F5A0; --blue:#00C9FF; --red:#FF6B6B; --bg:#050508; --card:#0d0d14; --border:#1a1a2a; --text:#f0f0f5; --muted:#6b7280; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .auth-wrap{width:100%;max-width:420px;}
+  .auth-logo{display:flex;align-items:center;gap:10px;text-decoration:none;margin-bottom:40px;justify-content:center;}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--green),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:var(--bg);}
+  .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--text);letter-spacing:-0.02em;}
+  .auth-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;}
+  .auth-title{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-bottom:6px;}
+  .auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px;}
+  .form-group{margin-bottom:16px;}
+  .form-label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;}
+  .form-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;min-height:44px;}
+  .form-input::placeholder{color:#3d3d4a;}
+  .form-input:focus{border-color:var(--green);}
+  .form-input.error{border-color:var(--red);}
+  .form-hint{font-size:12px;color:var(--muted);margin-top:4px;}
+  .form-error{font-size:12px;color:var(--red);margin-top:4px;display:none;}
+  .form-error.show{display:block;}
+  .pass-wrap{position:relative;}
+  .pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;}
+  .pass-toggle:hover{color:var(--text);}
+  .strength-bar{height:4px;background:var(--border);border-radius:100px;overflow:hidden;margin-top:6px;}
+  .strength-fill{height:100%;border-radius:100px;transition:all 0.3s;width:0;}
+  .strength-fill.weak{background:var(--red);width:33%;}
+  .strength-fill.medium{background:#FFA500;width:66%;}
+  .strength-fill.strong{background:var(--green);width:100%;}
+  .terms-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;}
+  .checkbox{width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;margin-top:2px;}
+  .terms-text{font-size:13px;color:var(--muted);line-height:1.4;}
+  .terms-text a{color:var(--green);text-decoration:none;}
+  .btn-submit{width:100%;background:linear-gradient(135deg,var(--green),var(--blue));color:var(--bg);border:none;border-radius:10px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.2s;min-height:44px;}
+  .btn-submit:hover:not(:disabled){box-shadow:0 0 24px rgba(0,245,160,0.3);transform:translateY(-1px);}
+  .btn-submit:disabled{opacity:0.5;cursor:not-allowed;}
+  .auth-footer{text-align:center;margin-top:20px;font-size:14px;color:var(--muted);}
+  .auth-footer a{color:var(--green);text-decoration:none;font-weight:500;}
+  .auth-footer a:hover{text-decoration:underline;}
+  .global-error{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:var(--red);padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;display:none;}
+  .global-error.show{display:block;}
+  #toast-container{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast{padding:11px 20px;border-radius:12px;font-size:14px;font-weight:500;animation:toastIn 0.3s ease;max-width:320px;text-align:center;}
+  .toast-success{background:rgba(0,245,160,0.12);border:1px solid rgba(0,245,160,0.3);color:var(--green);}
+  .toast-error{background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.3);color:var(--red);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <a href="/" class="auth-logo">
+    <div class="logo-icon">F</div>
+    <span class="logo-text">finn</span>
+  </a>
+
+  <div class="auth-card">
+    <h1 class="auth-title">Criar sua conta</h1>
+    <p class="auth-sub">Comece a transformar sua vida financeira hoje.</p>
+
+    <div class="global-error" id="globalError"></div>
+
+    <form id="signupForm" onsubmit="handleSignup(event)">
+      <div class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input type="text" class="form-input" id="name" placeholder="Seu nome" autocomplete="name" required>
+        <div class="form-error" id="nameErr">Digite seu nome</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="email" placeholder="seu@email.com" autocomplete="email" required>
+        <div class="form-error" id="emailErr">E-mail inválido</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <div class="pass-wrap">
+          <input type="password" class="form-input" id="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required oninput="checkStrength(this.value)">
+          <button type="button" class="pass-toggle" onclick="togglePass('password', this)">👁</button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+        <div class="form-hint" id="strengthText">Use letras, números e símbolos</div>
+        <div class="form-error" id="passErr">Senha muito fraca (mínimo 8 caracteres)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirmar senha</label>
+        <div class="pass-wrap">
+          <input type="password" class="form-input" id="confirmPass" placeholder="Repita a senha" autocomplete="new-password" required>
+          <button type="button" class="pass-toggle" onclick="togglePass('confirmPass', this)">👁</button>
+        </div>
+        <div class="form-error" id="confirmErr">As senhas não coincidem</div>
+      </div>
+
+      <div class="terms-row">
+        <input type="checkbox" class="checkbox" id="terms" required>
+        <label for="terms" class="terms-text">
+          Aceito os <a href="#" target="_blank">Termos de Uso</a> e a <a href="#" target="_blank">Política de Privacidade</a>
+        </label>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Criar conta</button>
+    </form>
+  </div>
+
+  <div class="auth-footer">
+    Já tem conta? <a href="/login.html">Entrar</a>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+  // Redirect if already logged in
+  (async () => {
+    const session = await FinnAuth.getSession();
+    if (session) window.location.href = '/dashboard.html';
+
+    // Check referral code from URL
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) localStorage.setItem('finn_referral', ref);
+  })();
+
+  function togglePass(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+    else { inp.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  function checkStrength(val) {
+    const fill = document.getElementById('strengthFill');
+    const txt = document.getElementById('strengthText');
+    if (val.length === 0) { fill.className = 'strength-fill'; txt.textContent = 'Use letras, números e símbolos'; return; }
+    const strong = val.length >= 8 && /[A-Z]/.test(val) && /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val);
+    const medium = val.length >= 8 && (/[A-Z]/.test(val) || /[0-9]/.test(val));
+    if (strong) { fill.className = 'strength-fill strong'; txt.textContent = 'Senha forte 💪'; }
+    else if (medium) { fill.className = 'strength-fill medium'; txt.textContent = 'Senha média — adicione símbolos'; }
+    else { fill.className = 'strength-fill weak'; txt.textContent = 'Senha fraca — use 8+ caracteres'; }
+  }
+
+  function showError(id, show) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('show', show);
+  }
+
+  function setGlobalError(msg) {
+    const el = document.getElementById('globalError');
+    el.textContent = msg;
+    el.classList.toggle('show', !!msg);
+  }
+
+  async function handleSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirmPass').value;
+
+    let valid = true;
+    if (!name) { showError('nameErr', true); valid = false; } else showError('nameErr', false);
+    if (!email.includes('@')) { showError('emailErr', true); valid = false; } else showError('emailErr', false);
+    if (password.length < 8) { showError('passErr', true); valid = false; } else showError('passErr', false);
+    if (password !== confirm) { showError('confirmErr', true); valid = false; } else showError('confirmErr', false);
+    if (!document.getElementById('terms').checked) {
+      setGlobalError('Você precisa aceitar os termos para continuar.');
+      valid = false;
+    } else setGlobalError('');
+
+    if (!valid) return;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Criando conta...';
+    setGlobalError('');
+
+    try {
+      const client = await FinnAuth.getClient();
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: { data: { name } }
+      });
+
+      if (error) throw error;
+
+      // Call backend to generate referral code
+      const ref = localStorage.getItem('finn_referral');
+      await FinnAuth.apiCall('/api/auth/signup', {
+        method: 'POST',
+        body: { name, referralCode: ref || null }
+      });
+
+      if (ref) {
+        localStorage.removeItem('finn_referral');
+        await FinnAuth.apiCall('/api/referrals/apply', {
+          method: 'POST',
+          body: { referralCode: ref }
+        });
+      }
+
+      if (data.session) {
+        window.location.href = '/onboarding.html';
+      } else {
+        // Email confirmation required
+        document.getElementById('signupForm').innerHTML = `
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:48px;margin-bottom:16px;">📧</div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:20px;margin-bottom:10px;">Confirme seu e-mail</h2>
+            <p style="color:var(--muted);font-size:14px;line-height:1.6;">
+              Enviamos um link de confirmação para <strong style="color:var(--text)">${email}</strong>.<br>
+              Clique no link para ativar sua conta.
+            </p>
+          </div>`;
+      }
+    } catch (err) {
+      let msg = 'Erro ao criar conta. Tente novamente.';
+      if (err.message?.includes('already registered') || err.message?.includes('User already registered')) {
+        msg = 'Este e-mail já está cadastrado. Tente fazer login.';
+      } else if (err.message?.includes('Password')) {
+        msg = 'Senha muito fraca. Use no mínimo 6 caracteres.';
+      }
+      setGlobalError(msg);
+      btn.disabled = false;
+      btn.textContent = 'Criar conta';
+    }
+  }
+</script>
+</body>
+</html>

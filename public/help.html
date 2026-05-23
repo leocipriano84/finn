@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajuda — Finn</title>
+  <link rel="stylesheet" href="/lib/app.css">
+  <style>
+    .help-search { position:relative; max-width:600px; margin:0 auto 32px; }
+    .help-search input { width:100%; padding:16px 16px 16px 48px; background:var(--card); border:1px solid var(--border); border-radius:16px; color:var(--text); font-size:16px; }
+    .help-search input:focus { border-color:var(--green); outline:none; }
+    .help-search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:18px; color:var(--muted); pointer-events:none; }
+    .help-categories { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:32px; }
+    .help-cat { padding:20px 16px; background:var(--card); border:1px solid var(--border); border-radius:12px; text-align:center; cursor:pointer; transition:.2s; }
+    .help-cat:hover, .help-cat.active { border-color:var(--green); background:rgba(0,245,160,.05); }
+    .help-cat .cat-icon { font-size:24px; display:block; margin-bottom:8px; }
+    .help-cat .cat-name { font-size:13px; font-weight:600; }
+    .faq-section { margin-bottom:32px; }
+    .faq-section h2 { font-family:'Syne',sans-serif; font-size:18px; margin-bottom:16px; color:var(--muted); }
+    .faq-item { background:var(--card); border:1px solid var(--border); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+    .faq-question { padding:16px 20px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; transition:.2s; }
+    .faq-question:hover { background:rgba(255,255,255,.02); }
+    .faq-question strong { font-size:14px; flex:1; }
+    .faq-arrow { font-size:12px; color:var(--muted); transition:.3s; flex-shrink:0; }
+    .faq-item.open .faq-arrow { transform:rotate(180deg); }
+    .faq-answer { padding:0 20px; max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s; }
+    .faq-item.open .faq-answer { max-height:400px; padding:0 20px 16px; }
+    .faq-answer p { font-size:14px; color:var(--muted); line-height:1.7; margin:0; }
+    .faq-answer a { color:var(--green); text-decoration:none; }
+    .contact-section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; margin-top:32px; }
+    .contact-section h2 { font-family:'Syne',sans-serif; font-size:18px; margin-bottom:8px; }
+    .contact-section p { font-size:14px; color:var(--muted); margin-bottom:20px; }
+    .contact-result { padding:16px; background:rgba(0,245,160,.08); border:1px solid rgba(0,245,160,.2); border-radius:12px; color:var(--green); font-size:14px; display:none; margin-top:12px; }
+    .no-results { text-align:center; padding:48px 20px; color:var(--muted); display:none; }
+    .no-results .nr-icon { font-size:40px; display:block; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+<div class="app-wrap">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><span class="logo-icon">F</span><span>Finn</span></div>
+    <ul class="sidebar-nav">
+      <li><a href="/dashboard.html"><span class="nav-icon">◈</span>Dashboard</a></li>
+      <li><a href="/transactions.html"><span class="nav-icon">↕</span>Transações</a></li>
+      <li><a href="/goals.html"><span class="nav-icon">◎</span>Metas</a></li>
+      <li><a href="/reports.html"><span class="nav-icon">≋</span>Relatórios</a></li>
+      <li><a href="/coach.html"><span class="nav-icon">✦</span>Coach IA</a></li>
+      <li><a href="/referrals.html"><span class="nav-icon">◇</span>Indicações</a></li>
+      <li class="active"><a href="/help.html"><span class="nav-icon">?</span>Ajuda</a></li>
+      <li><a href="/profile.html"><span class="nav-icon">○</span>Perfil</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">U</div>
+      <div class="user-info"><span id="sidebarName">...</span><span id="sidebarPlan" class="plan-badge">free</span></div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Central de Ajuda</h1>
+        <p class="page-subtitle">Como podemos te ajudar?</p>
+      </div>
+    </div>
+
+    <div class="help-search">
+      <span class="help-search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Pesquise sua dúvida..." oninput="filterFAQ()">
+    </div>
+
+    <div class="help-categories">
+      <div class="help-cat active" data-cat="all" onclick="filterByCategory(this,'all')">
+        <span class="cat-icon">📚</span><span class="cat-name">Todos</span>
+      </div>
+      <div class="help-cat" data-cat="conta" onclick="filterByCategory(this,'conta')">
+        <span class="cat-icon">👤</span><span class="cat-name">Conta</span>
+      </div>
+      <div class="help-cat" data-cat="transacoes" onclick="filterByCategory(this,'transacoes')">
+        <span class="cat-icon">💸</span><span class="cat-name">Transações</span>
+      </div>
+      <div class="help-cat" data-cat="plano" onclick="filterByCategory(this,'plano')">
+        <span class="cat-icon">⚡</span><span class="cat-name">Plano Pro</span>
+      </div>
+      <div class="help-cat" data-cat="coach" onclick="filterByCategory(this,'coach')">
+        <span class="cat-icon">✦</span><span class="cat-name">Coach IA</span>
+      </div>
+      <div class="help-cat" data-cat="privacidade" onclick="filterByCategory(this,'privacidade')">
+        <span class="cat-icon">🔒</span><span class="cat-name">Privacidade</span>
+      </div>
+    </div>
+
+    <div id="noResults" class="no-results">
+      <span class="nr-icon">🔍</span>
+      <strong>Nenhum resultado encontrado</strong>
+      <p>Tente outras palavras ou entre em contato conosco</p>
+    </div>
+
+    <div id="faqContainer">
+      <div class="faq-section" data-section="conta">
+        <h2>Conta e Acesso</h2>
+        <div class="faq-item" data-keywords="senha esqueci redefinir recuperar">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Esqueci minha senha. Como recuperar?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Na tela de login, clique em "Esqueci minha senha". Digite seu e-mail cadastrado e enviaremos um link para redefinir. O link expira em 1 hora.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="email alterar mudar conta">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Posso mudar o e-mail da minha conta?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>No momento, a alteração de e-mail deve ser feita pelo suporte. Entre em contato conosco pelo formulário abaixo informando o e-mail atual e o novo e-mail desejado.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="excluir deletar conta dados">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como excluir minha conta?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Acesse <a href="/profile.html">Perfil</a> → Zona de Perigo → "Excluir minha conta". Você precisará confirmar digitando exatamente "EXCLUIR MINHA CONTA". Esta ação é <strong>irreversível</strong>.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="dados exportar backup download">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como exportar meus dados?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Acesse <a href="/profile.html">Perfil</a> → Seus Dados → "Exportar meus dados". Você receberá um arquivo JSON com todas suas transações, metas, conquistas e configurações.</p></div>
+        </div>
+      </div>
+
+      <div class="faq-section" data-section="transacoes">
+        <h2>Transações</h2>
+        <div class="faq-item" data-keywords="importar csv planilha excel banco">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como importar transações de um banco?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Na página de <a href="/transactions.html">Transações</a>, clique em "Importar". Você pode enviar um arquivo CSV ou colar o conteúdo diretamente. O Finn detecta automaticamente as categorias e elimina duplicatas. O formato esperado: data, descrição, valor.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="categorias quais lista tipos">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Quais categorias estão disponíveis?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>O Finn possui 15 categorias de despesas: Alimentação, Transporte, Moradia, Saúde, Educação, Lazer, Vestuário, Tecnologia, Beleza, Pet, Presentes, Seguros, Investimentos, Impostos e Outros. Para receitas: Salário, Freelance, Investimentos, Presente e Outros.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="recorrente repetir fixo mensal automático">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como registrar uma despesa recorrente?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Ao criar uma transação, escolha a frequência no campo correspondente: única, diária, semanal, mensal ou anual. Transações recorrentes aparecem automaticamente no mês correto.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="editar alterar mudar corrigir transação">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Posso editar uma transação já registrada?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Sim! Na lista de transações, passe o mouse sobre a transação (ou toque nela no mobile) e clique no ícone de editar. Você pode alterar qualquer campo.</p></div>
+        </div>
+      </div>
+
+      <div class="faq-section" data-section="plano">
+        <h2>Plano Pro</h2>
+        <div class="faq-item" data-keywords="pro diferença gratuito recursos funcionalidades">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>O que inclui o plano Pro?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>O Finn Pro inclui: Coach IA ilimitado, relatórios avançados com tendências e heatmap, orçamentos por categoria, metas ilimitadas, importação automática de extratos e suporte prioritário. O plano gratuito permite até 50 transações/mês e 2 metas ativas.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="cancelar assinatura pro como">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como cancelar a assinatura Pro?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Acesse <a href="/profile.html">Perfil</a> → Assinatura → "Gerenciar assinatura". Você será redirecionado ao portal do Stripe onde pode cancelar. O acesso Pro continua até o fim do período pago.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="cobrança pagamento fatura cartão">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como funciona a cobrança?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>A cobrança é mensal automática via cartão de crédito. O pagamento é processado com segurança pelo Stripe. Você pode visualizar todas as faturas no portal do Stripe.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="reembolso devolução dinheiro cancelei">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Posso pedir reembolso?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Oferecemos reembolso integral em até 7 dias após a primeira assinatura. Entre em contato pelo formulário abaixo para solicitar.</p></div>
+        </div>
+      </div>
+
+      <div class="faq-section" data-section="coach">
+        <h2>Coach IA</h2>
+        <div class="faq-item" data-keywords="coach ia inteligência artificial funciona como">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Como funciona o Coach IA?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>O Coach IA analisa seus dados financeiros em tempo real e responde suas perguntas com insights personalizados. Ele usa IA avançada (Claude da Anthropic) e tem acesso ao seu histórico para dar conselhos contextuais. Disponível apenas no plano Pro.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="histórico conversa salvo apagado coach">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>O histórico de conversas é salvo?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>O histórico da conversa é mantido durante a sessão. Ao fechar e reabrir o Coach, o histórico é limpo para proteger sua privacidade. Os dados financeiros analisados permanecem seguros e criptografados.</p></div>
+        </div>
+      </div>
+
+      <div class="faq-section" data-section="privacidade">
+        <h2>Privacidade e Segurança</h2>
+        <div class="faq-item" data-keywords="dados segurança seguro criptografia privacidade">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Meus dados financeiros estão seguros?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Sim. Todos os dados são armazenados com criptografia em repouso e em trânsito (TLS). Usamos Supabase com Row Level Security (RLS), garantindo que apenas você acessa seus dados. Nunca vendemos informações para terceiros.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="lgpd privacidade direitos meus dados">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>Quais são meus direitos sobre meus dados?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>Em conformidade com a LGPD, você tem direito a: acessar seus dados (exportação disponível no perfil), corrigir dados incorretos, excluir sua conta e todos os dados associados, e revogar consentimentos. Para exercer esses direitos, use as ferramentas no app ou entre em contato.</p></div>
+        </div>
+        <div class="faq-item" data-keywords="banco conexão pluggy open finance seguro">
+          <div class="faq-question" onclick="toggleFAQ(this)">
+            <strong>A conexão com meu banco é segura?</strong>
+            <span class="faq-arrow">▼</span>
+          </div>
+          <div class="faq-answer"><p>A conexão bancária é feita via Pluggy, uma plataforma regulamentada pelo Banco Central para Open Finance. O Finn nunca tem acesso às suas credenciais bancárias — a autenticação é feita diretamente no seu banco.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact form -->
+    <div class="contact-section">
+      <h2>Não encontrou o que precisava?</h2>
+      <p>Nossa equipe responde em até 24 horas nos dias úteis.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Assunto</label>
+          <select class="form-input" id="contactCategory">
+            <option value="general">Dúvida geral</option>
+            <option value="bug">Reportar bug</option>
+            <option value="billing">Cobrança / Pagamento</option>
+            <option value="feature">Sugestão de melhoria</option>
+            <option value="account">Problema com conta</option>
+            <option value="refund">Solicitar reembolso</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Título</label>
+          <input type="text" class="form-input" id="contactSubject" placeholder="Descreva brevemente sua dúvida">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mensagem</label>
+        <textarea class="form-input" id="contactMessage" rows="5" placeholder="Descreva sua dúvida ou problema com o máximo de detalhes possível..." style="resize:vertical"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="sendContact()" id="sendBtn">Enviar mensagem</button>
+      <div class="contact-result" id="contactResult"></div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/dashboard.html" class="bottom-nav-item"><span>◈</span><span>Início</span></a>
+    <a href="/transactions.html" class="bottom-nav-item"><span>↕</span><span>Transações</span></a>
+    <a href="/goals.html" class="bottom-nav-item"><span>◎</span><span>Metas</span></a>
+    <a href="/reports.html" class="bottom-nav-item"><span>≋</span><span>Relatórios</span></a>
+    <a href="/coach.html" class="bottom-nav-item"><span>✦</span><span>Coach</span></a>
+    <a href="/profile.html" class="bottom-nav-item"><span>○</span><span>Perfil</span></a>
+  </nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+let currentCategory = 'all'
+
+async function init() {
+  await FinnAuth.checkAuth()
+  const user = await FinnAuth.getUser()
+  FinnUI.setNavUser(user.email.split('@')[0], 'free')
+  try {
+    const profile = await FinnAuth.apiCall('/api/user/profile')
+    FinnUI.setNavUser(profile.name || user.email.split('@')[0], profile.plan)
+  } catch(e) {}
+}
+
+function toggleFAQ(el) {
+  const item = el.closest('.faq-item')
+  const isOpen = item.classList.contains('open')
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'))
+  if (!isOpen) item.classList.add('open')
+}
+
+function filterByCategory(el, cat) {
+  currentCategory = cat
+  document.querySelectorAll('.help-cat').forEach(c => c.classList.remove('active'))
+  el.classList.add('active')
+  document.getElementById('searchInput').value = ''
+  applyFilters()
+}
+
+function filterFAQ() { applyFilters() }
+
+function applyFilters() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim()
+  let visible = 0
+
+  document.querySelectorAll('.faq-section').forEach(section => {
+    const sectionCat = section.dataset.section
+    const catMatch = currentCategory === 'all' || sectionCat === currentCategory
+    let sectionVisible = 0
+
+    section.querySelectorAll('.faq-item').forEach(item => {
+      const text = item.querySelector('.faq-question strong').textContent.toLowerCase()
+      const answer = item.querySelector('.faq-answer p').textContent.toLowerCase()
+      const keywords = (item.dataset.keywords || '').toLowerCase()
+      const queryMatch = !query || text.includes(query) || answer.includes(query) || keywords.includes(query)
+      const show = catMatch && queryMatch
+      item.style.display = show ? '' : 'none'
+      if (show) sectionVisible++
+    })
+
+    section.style.display = sectionVisible > 0 ? '' : 'none'
+    visible += sectionVisible
+  })
+
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none'
+}
+
+async function sendContact() {
+  const subject = document.getElementById('contactSubject').value.trim()
+  const message = document.getElementById('contactMessage').value.trim()
+  const category = document.getElementById('contactCategory').value
+
+  if (!subject) return FinnUI.toast('Informe o título', 'warning')
+  if (!message || message.length < 10) return FinnUI.toast('Mensagem muito curta', 'warning')
+
+  const btn = document.getElementById('sendBtn')
+  btn.disabled = true
+  btn.textContent = 'Enviando...'
+
+  try {
+    await FinnAuth.apiCall('/api/user/support', { method:'POST', body: JSON.stringify({ subject, message, category }) })
+    document.getElementById('contactSubject').value = ''
+    document.getElementById('contactMessage').value = ''
+    const result = document.getElementById('contactResult')
+    result.style.display = 'block'
+    result.textContent = '✓ Mensagem enviada! Nossa equipe responderá em até 24 horas.'
+    FinnUI.toast('Mensagem enviada com sucesso')
+  } catch(e) {
+    FinnUI.toast('Erro ao enviar mensagem', 'error')
+  } finally {
+    btn.disabled = false
+    btn.textContent = 'Enviar mensagem'
+  }
+}
+
+init()
+</script>
+</body>
+</html>

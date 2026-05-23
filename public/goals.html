@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metas — Finn</title>
+<link rel="stylesheet" href="/lib/app.css">
+<style>
+  .goals-summary { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .summary-pill { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; flex: 1; min-width: 140px; }
+  .pill-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .pill-value { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600; }
+
+  .goals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  @media (max-width: 480px) { .goals-grid { grid-template-columns: 1fr; } }
+
+  .goal-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: relative; transition: border-color 0.2s; }
+  .goal-card:hover { border-color: rgba(0,245,160,0.2); }
+  .goal-card.completed { opacity: 0.7; }
+  .goal-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .goal-icon-wrap { display: flex; align-items: center; gap: 10px; }
+  .goal-emoji { font-size: 28px; }
+  .goal-title { font-weight: 600; font-size: 15px; }
+  .goal-type { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .goal-menu { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 18px; transition: all 0.15s; }
+  .goal-menu:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+  .goal-amounts { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .goal-current { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 600; color: var(--green); }
+  .goal-target { font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: var(--muted); }
+  .goal-pct-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .goal-meta { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--muted); }
+  .goal-footer { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .goal-add-btn { flex: 1; background: rgba(0,245,160,0.08); border: 1px solid rgba(0,245,160,0.2); color: var(--green); padding: 8px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .goal-add-btn:hover { background: rgba(0,245,160,0.15); }
+  .completed-badge { position: absolute; top: 12px; right: 12px; background: rgba(0,245,160,0.15); border: 1px solid rgba(0,245,160,0.3); color: var(--green); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 100px; }
+
+  /* Dropdown menu */
+  .goal-dropdown { position: absolute; top: 40px; right: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; z-index: 20; min-width: 140px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .goal-dropdown-item { display: block; width: 100%; padding: 9px 12px; background: none; border: none; color: var(--text); font-size: 13px; cursor: pointer; text-align: left; border-radius: 7px; transition: background 0.15s; font-family: 'DM Sans', sans-serif; }
+  .goal-dropdown-item:hover { background: rgba(255,255,255,0.06); }
+  .goal-dropdown-item.danger:hover { color: var(--red); }
+
+  /* Goal types */
+  .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  @media (max-width: 400px) { .type-grid { grid-template-columns: repeat(3, 1fr); } }
+  .type-opt { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 10px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 10px; color: var(--muted); transition: all 0.15s; min-height: 60px; justify-content: center; }
+  .type-opt:hover { border-color: rgba(0,245,160,0.3); color: var(--text); }
+  .type-opt.selected { border-color: var(--green); color: var(--green); background: rgba(0,245,160,0.08); }
+  .type-emoji { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="app-wrap">
+  <aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo"><div class="logo-icon">F</div><span class="logo-text">finn</span></a>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="/transactions.html" class="nav-item"><span class="nav-icon">💳</span>Transações</a>
+      <a href="/goals.html" class="nav-item active"><span class="nav-icon">🎯</span>Metas</a>
+      <a href="/reports.html" class="nav-item"><span class="nav-icon">📊</span>Relatórios</a>
+      <a href="/coach.html" class="nav-item"><span class="nav-icon">🤖</span>Coach IA</a>
+      <a href="/referrals.html" class="nav-item"><span class="nav-icon">🎁</span>Indicações</a>
+      <a href="/profile.html" class="nav-item"><span class="nav-icon">👤</span>Perfil</a>
+      <a href="/help.html" class="nav-item"><span class="nav-icon">❓</span>Ajuda</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-info"><div class="user-avatar" id="sidebarAvatar">?</div><div><div class="user-name" id="sidebarName">...</div><div class="user-plan" id="sidebarPlan">Plano Grátis</div></div></div>
+      <button class="btn-logout" onclick="FinnAuth.logout()">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-inner">
+      <div class="page-header">
+        <div><h1 class="page-title">Metas</h1><p class="page-subtitle" id="goalsCount">Carregando...</p></div>
+        <button class="btn btn-primary" onclick="openModal()">+ Nova meta</button>
+      </div>
+
+      <div class="goals-summary" id="goalsSummary">
+        <div class="summary-pill"><div class="pill-label">Total guardado</div><div class="pill-value text-green" id="totalSaved">R$ 0</div></div>
+        <div class="summary-pill"><div class="pill-label">Metas ativas</div><div class="pill-value" id="activeCount">0</div></div>
+        <div class="summary-pill"><div class="pill-label">Concluídas</div><div class="pill-value text-blue" id="completedCount">0</div></div>
+      </div>
+
+      <div class="goals-grid" id="goalsGrid"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-wrap">
+    <a href="/dashboard.html" class="bnav-item"><span class="bnav-icon">🏠</span>Início</a>
+    <a href="/transactions.html" class="bnav-item"><span class="bnav-icon">💳</span>Lançamentos</a>
+    <a href="/goals.html" class="bnav-item active"><span class="bnav-icon">🎯</span>Metas</a>
+    <a href="/reports.html" class="bnav-item"><span class="bnav-icon">📊</span>Relatórios</a>
+    <a href="/coach.html" class="bnav-item"><span class="bnav-icon">🤖</span>Coach</a>
+    <a href="/profile.html" class="bnav-item"><span class="bnav-icon">👤</span>Perfil</a>
+  </div>
+</nav>
+
+<!-- Goal modal -->
+<div class="modal-overlay hidden" id="goalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="goalModalTitle">Nova meta</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="gId">
+      <div class="form-group">
+        <label class="form-label">Tipo de meta</label>
+        <div class="type-grid" id="goalTypeGrid"></div>
+        <input type="hidden" id="gType" value="custom">
+        <input type="hidden" id="gIcon" value="🎯">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome da meta *</label>
+          <input type="text" class="form-input" id="gTitle" placeholder="Ex: Viagem para Europa" maxlength="100">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Valor alvo *</label>
+          <div style="position:relative;"><span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;">R$</span><input type="number" class="form-input" id="gTarget" placeholder="0,00" style="padding-left:36px;" min="1" step="0.01"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Já guardei</label>
+          <div style="position:relative;"><span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;">R$</span><input type="number" class="form-input" id="gCurrent" placeholder="0,00" style="padding-left:36px;" min="0" step="0.01"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data limite</label>
+        <input type="date" class="form-input" id="gDeadline">
+      </div>
+      <div id="gSuggestion" style="background:rgba(0,245,160,0.06);border:1px solid rgba(0,245,160,0.2);border-radius:10px;padding:12px;font-size:13px;color:var(--muted);display:none;margin-top:4px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGoal()">Salvar meta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add amount modal -->
+<div class="modal-overlay hidden" id="addModal">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <h2 class="modal-title" id="addModalTitle">Adicionar valor</h2>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="addGoalId">
+      <div class="form-group">
+        <label class="form-label">Quanto você guardou?</label>
+        <div style="position:relative;"><span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;">R$</span><input type="number" class="form-input" id="addAmount" placeholder="0,00" style="padding-left:36px;font-size:18px;" min="0.01" step="0.01" autofocus></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeAddModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="doAddAmount()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+  const GOAL_TYPES = [
+    { id:'travel', icon:'✈️', name:'Viagem' }, { id:'home', icon:'🏠', name:'Imóvel' },
+    { id:'car', icon:'🚗', name:'Veículo' }, { id:'tech', icon:'💻', name:'Eletrônico' },
+    { id:'education', icon:'📚', name:'Educação' }, { id:'wedding', icon:'💍', name:'Casamento' },
+    { id:'baby', icon:'👶', name:'Bebê' }, { id:'emergency', icon:'🛡️', name:'Emergência' },
+    { id:'investment', icon:'📈', name:'Invest.' }, { id:'custom', icon:'🎯', name:'Personaliz.' }
+  ];
+
+  async function init() {
+    const session = await FinnAuth.checkAuth();
+    if (!session) return;
+    try {
+      FinnUI.setNavUser(session.user.user_metadata?.name, null);
+    } catch { FinnUI.setNavUser(session.user.user_metadata?.name, null); }
+    renderGoalTypeGrid('custom');
+    loadGoals();
+  }
+
+  async function loadGoals() {
+    try {
+      const res = await FinnAuth.apiCall('/api/goals');
+      const goals = await res.json();
+      const active = goals.filter(g => !g.completed);
+      const done = goals.filter(g => g.completed);
+      const totalSaved = active.reduce((s, g) => s + Number(g.current_amount), 0);
+      document.getElementById('goalsCount').textContent = `${active.length} meta${active.length !== 1 ? 's' : ''} ativa${active.length !== 1 ? 's' : ''}`;
+      document.getElementById('totalSaved').textContent = FinnUI.formatCurrency(totalSaved);
+      document.getElementById('activeCount').textContent = active.length;
+      document.getElementById('completedCount').textContent = done.length;
+      renderGoals(goals);
+    } catch { FinnUI.toast('Erro ao carregar metas', 'error'); }
+  }
+
+  function renderGoals(goals) {
+    const el = document.getElementById('goalsGrid');
+    if (!goals.length) {
+      el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 24px;">
+        <div style="font-size:52px;margin-bottom:16px;">🎯</div>
+        <h2 style="font-family:'Syne',sans-serif;font-size:20px;margin-bottom:8px;">Nenhuma meta ainda</h2>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:20px;">Defina o que quer conquistar e o Finn te ajuda a chegar lá.</p>
+        <button class="btn btn-primary" onclick="openModal()">+ Criar primeira meta</button>
+      </div>`;
+      return;
+    }
+    el.innerHTML = goals.map(g => {
+      const pct = g.progress_pct || 0;
+      const daysLeft = g.deadline ? Math.ceil((new Date(g.deadline) - new Date()) / 86400000) : null;
+      const fillClass = pct >= 100 ? '' : pct >= 70 ? '' : pct < 30 ? 'red' : 'orange';
+      return `
+      <div class="goal-card ${g.completed ? 'completed' : ''}" id="gc-${g.id}">
+        ${g.completed ? '<div class="completed-badge">✓ Concluída</div>' : ''}
+        <div class="goal-top">
+          <div class="goal-icon-wrap">
+            <span class="goal-emoji">${g.icon || '🎯'}</span>
+            <div><div class="goal-title">${g.title}</div><div class="goal-type">${GOAL_TYPES.find(t=>t.id===g.type)?.name || 'Meta'}</div></div>
+          </div>
+          <div style="position:relative;">
+            <button class="goal-menu" onclick="toggleMenu('${g.id}')">⋯</button>
+            <div class="goal-dropdown hidden" id="menu-${g.id}">
+              <button class="goal-dropdown-item" onclick="editGoal('${g.id}');closeMenu()">✏️ Editar</button>
+              ${!g.completed ? `<button class="goal-dropdown-item" onclick="markComplete('${g.id}');closeMenu()">✅ Concluir</button>` : ''}
+              <button class="goal-dropdown-item danger" onclick="deleteGoal('${g.id}');closeMenu()">🗑️ Excluir</button>
+            </div>
+          </div>
+        </div>
+        <div class="goal-amounts">
+          <span class="goal-current">${FinnUI.formatCurrency(g.current_amount)}</span>
+          <span class="goal-target">de ${FinnUI.formatCurrency(g.target_amount)}</span>
+        </div>
+        <div class="goal-pct-label"><span>${pct}% concluído</span>${daysLeft !== null ? `<span>${daysLeft > 0 ? daysLeft + ' dias restantes' : daysLeft === 0 ? '⚠️ Prazo hoje!' : '⚠️ Prazo vencido'}</span>` : ''}</div>
+        <div class="progress-bar"><div class="progress-fill ${fillClass}" style="width:${pct}%"></div></div>
+        <div class="goal-meta">
+          ${g.suggested_monthly ? `<span>💡 Guardar ${FinnUI.formatCurrency(g.suggested_monthly)}/mês</span>` : '<span></span>'}
+          ${g.deadline ? `<span>📅 ${FinnUI.formatDate(g.deadline)}</span>` : '<span></span>'}
+        </div>
+        ${!g.completed ? `<div class="goal-footer"><button class="goal-add-btn" onclick="openAddModal('${g.id}', '${g.title}')">+ Adicionar valor</button></div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function toggleMenu(id) {
+    const menu = document.getElementById('menu-' + id);
+    const isHidden = menu.classList.contains('hidden');
+    document.querySelectorAll('.goal-dropdown').forEach(m => m.classList.add('hidden'));
+    if (isHidden) menu.classList.remove('hidden');
+  }
+  function closeMenu() { document.querySelectorAll('.goal-dropdown').forEach(m => m.classList.add('hidden')); }
+  document.addEventListener('click', e => { if (!e.target.closest('.goal-card') || !e.target.closest('.goal-menu')) closeMenu(); });
+
+  function renderGoalTypeGrid(selected) {
+    document.getElementById('goalTypeGrid').innerHTML = GOAL_TYPES.map(t =>
+      `<button type="button" class="type-opt ${t.id===selected?'selected':''}" onclick="selectGoalType('${t.id}','${t.icon}')">
+        <span class="type-emoji">${t.icon}</span>${t.name}
+      </button>`).join('');
+  }
+
+  function selectGoalType(id, icon) {
+    document.getElementById('gType').value = id;
+    document.getElementById('gIcon').value = icon;
+    renderGoalTypeGrid(id);
+    updateSuggestion();
+  }
+
+  function updateSuggestion() {
+    const target = parseFloat(document.getElementById('gTarget').value) || 0;
+    const current = parseFloat(document.getElementById('gCurrent').value) || 0;
+    const deadline = document.getElementById('gDeadline').value;
+    const sug = document.getElementById('gSuggestion');
+    if (target > current && deadline) {
+      const months = Math.max(1, Math.ceil((new Date(deadline) - new Date()) / (30 * 86400000)));
+      const monthly = Math.ceil((target - current) / months);
+      sug.innerHTML = `💡 Guardando <strong style="color:var(--green)">${FinnUI.formatCurrency(monthly)}/mês</strong> você atinge essa meta em ${months} meses`;
+      sug.style.display = '';
+    } else sug.style.display = 'none';
+  }
+
+  function openModal() {
+    document.getElementById('gId').value = '';
+    document.getElementById('goalModalTitle').textContent = 'Nova meta';
+    document.getElementById('gTitle').value = '';
+    document.getElementById('gTarget').value = '';
+    document.getElementById('gCurrent').value = '';
+    document.getElementById('gDeadline').value = '';
+    document.getElementById('gType').value = 'custom';
+    document.getElementById('gIcon').value = '🎯';
+    renderGoalTypeGrid('custom');
+    document.getElementById('gSuggestion').style.display = 'none';
+    document.getElementById('goalModal').classList.remove('hidden');
+  }
+
+  async function editGoal(id) {
+    const res = await FinnAuth.apiCall('/api/goals/list');
+    const goals = await res.json();
+    const g = goals.find(x => x.id === id);
+    if (!g) return;
+    document.getElementById('gId').value = g.id;
+    document.getElementById('goalModalTitle').textContent = 'Editar meta';
+    document.getElementById('gTitle').value = g.title;
+    document.getElementById('gTarget').value = g.target_amount;
+    document.getElementById('gCurrent').value = g.current_amount;
+    document.getElementById('gDeadline').value = g.deadline || '';
+    document.getElementById('gType').value = g.type || 'custom';
+    document.getElementById('gIcon').value = g.icon || '🎯';
+    renderGoalTypeGrid(g.type || 'custom');
+    updateSuggestion();
+    document.getElementById('goalModal').classList.remove('hidden');
+  }
+
+  function closeModal() { document.getElementById('goalModal').classList.add('hidden'); }
+
+  async function saveGoal() {
+    const id = document.getElementById('gId').value;
+    const title = document.getElementById('gTitle').value.trim();
+    const target = parseFloat(document.getElementById('gTarget').value);
+    const current = parseFloat(document.getElementById('gCurrent').value) || 0;
+    const deadline = document.getElementById('gDeadline').value;
+    const type = document.getElementById('gType').value;
+    const icon = document.getElementById('gIcon').value;
+
+    if (!title) { FinnUI.toast('Informe o nome da meta', 'error'); return; }
+    if (!target || target <= 0) { FinnUI.toast('Informe o valor alvo', 'error'); return; }
+
+    try {
+      const url = id ? `/api/goals?id=${id}` : '/api/goals';
+      const method = id ? 'PUT' : 'POST';
+      const body = { title, target_amount: target, current_amount: current, deadline: deadline || null, type, icon };
+      const res = await FinnAuth.apiCall(url, { method, body });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      FinnUI.toast(id ? 'Meta atualizada!' : 'Meta criada! 🎯');
+      closeModal();
+      loadGoals();
+    } catch (e) { FinnUI.toast(e.message || 'Erro ao salvar', 'error'); }
+  }
+
+  async function deleteGoal(id) {
+    const ok = await FinnUI.confirm({ title: 'Excluir meta', text: 'Esta ação não pode ser desfeita.', confirmText: 'Excluir', danger: true, icon: '🗑️' });
+    if (!ok) return;
+    try {
+      await FinnAuth.apiCall(`/api/goals?id=${id}`, { method: 'DELETE' });
+      FinnUI.toast('Meta removida');
+      loadGoals();
+    } catch { FinnUI.toast('Erro ao excluir', 'error'); }
+  }
+
+  async function markComplete(id) {
+    try {
+      await FinnAuth.apiCall(`/api/goals?id=${id}`, { method: 'PUT', body: { completed: true } });
+      FinnUI.toast('🏆 Meta concluída! Parabéns!');
+      loadGoals();
+    } catch { FinnUI.toast('Erro', 'error'); }
+  }
+
+  function openAddModal(id, title) {
+    document.getElementById('addGoalId').value = id;
+    document.getElementById('addModalTitle').textContent = `Adicionar em: ${title}`;
+    document.getElementById('addAmount').value = '';
+    document.getElementById('addModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('addAmount').focus(), 100);
+  }
+
+  function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
+
+  async function doAddAmount() {
+    const id = document.getElementById('addGoalId').value;
+    const amount = parseFloat(document.getElementById('addAmount').value);
+    if (!amount || amount <= 0) { FinnUI.toast('Informe um valor', 'error'); return; }
+    try {
+      const res = await FinnAuth.apiCall(`/api/goals?action=deposit`, { method: 'POST', body: { goal_id: id, amount } });
+      const data = await res.json();
+      if (!res.ok) throw new Error();
+      closeAddModal();
+      if (data.completed) FinnUI.toast('🏆 Meta atingida! Parabéns!');
+      else FinnUI.toast(`${FinnUI.formatCurrency(amount)} adicionado à meta!`);
+      loadGoals();
+    } catch { FinnUI.toast('Erro ao adicionar', 'error'); }
+  }
+
+  document.getElementById('goalModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+  document.getElementById('addModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAddModal(); });
+  document.getElementById('gTarget').addEventListener('input', updateSuggestion);
+  document.getElementById('gCurrent').addEventListener('input', updateSuggestion);
+  document.getElementById('gDeadline').addEventListener('change', updateSuggestion);
+
+  init();
+</script>
+</body>
+</html>

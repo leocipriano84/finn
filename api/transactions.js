@@ -1,0 +1,166 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+
+async function getUserId(req) {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  if (!token) return null
+  const { data } = await supabase.auth.getUser(token)
+  return data?.user?.id ?? null
+}
+
+export default async function handler(req, res) {
+  const userId = await getUserId(req)
+  if (!userId) return res.status(401).json({ error: 'Não autenticado' })
+
+  const { id, action } = req.query
+
+  // GET
+  if (req.method === 'GET') {
+    if (action === 'summary') {
+      const { month } = req.query
+      const [y, m] = (month || new Date().toISOString().slice(0,7)).split('-')
+      const start = `${y}-${m}-01`
+      const end = new Date(Number(y), Number(m), 0).toISOString().slice(0,10)
+
+      const { data, error } = await supabase.from('transactions')
+        .select('type, amount, date')
+        .eq('user_id', userId).gte('date', start).lte('date', end)
+      if (error) return res.status(500).json({ error: error.message })
+
+      const txs = data || []
+      const income   = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0)
+      const expense  = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0)
+      const today = new Date().toISOString().slice(0,10)
+      const overdue  = txs.filter(t => t.type === 'expense' && t.date < today)
+
+      return res.status(200).json({
+        income: { confirmed: income, pending: 0, total: income },
+        expense: { confirmed: expense, pending: 0, total: expense },
+        card_total: 0, overdue_count: 0, overdue_amount: 0,
+        balance: income - expense,
+        forecast: income - expense,
+      })
+    }
+
+    // Export CSV
+    if (action === 'export') {
+      const { from, to, type: txType, format } = req.query
+      let q = supabase.from('transactions').select('date, type, amount, description, category, notes')
+        .eq('user_id', userId).order('date', { ascending: false })
+      if (from) q = q.gte('date', from)
+      if (to)   q = q.lte('date', to)
+      if (txType) q = q.eq('type', txType)
+      const { data, error } = await q
+      if (error) return res.status(500).json({ error: error.message })
+      const rows = data || []
+      const csv = ['Data,Tipo,Valor,Descrição,Categoria,Observações',
+        ...rows.map(r => [r.date, r.type, r.amount, `"${(r.description||'').replace(/"/g,'""')}"`, r.category, `"${(r.notes||'').replace(/"/g,'""')}"`].join(','))
+      ].join('\n')
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      res.setHeader('Content-Disposition', 'attachment; filename="transacoes.csv"')
+      return res.status(200).send('﻿' + csv)
+    }
+
+    // List
+    const { month, type, status, category, search, page = 1, limit = 50, date_start, date_end } = req.query
+
+    let query = supabase.from('transactions').select('*').eq('user_id', userId)
+
+    if (month) {
+      const [y, m] = month.split('-')
+      const start = `${y}-${m}-01`
+      const end = new Date(Number(y), Number(m), 0).toISOString().slice(0,10)
+      query = query.gte('date', start).lte('date', end)
+    }
+    if (date_start) query = query.gte('date', date_start)
+    if (date_end)   query = query.lte('date', date_end)
+    if (type && type !== 'all') query = query.eq('type', type)
+    if (category && category !== 'all') query = query.eq('category', category)
+    if (search) query = query.ilike('description', `%${search}%`)
+
+    query = query.order('date', { ascending: false }).order('created_at', { ascending: false })
+    query = query.range((Number(page)-1) * Number(limit), Number(page) * Number(limit) - 1)
+
+    const { data, error, count } = await query
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json({ data: data || [], count, page: Number(page), limit: Number(limit) })
+  }
+
+  // POST
+  if (req.method === 'POST') {
+    if (action === 'confirm' || req.body?.action === 'confirm') {
+      return res.status(200).json({ ok: true })
+    }
+    if (action === 'bulk-confirm' || req.body?.action === 'bulk-confirm') {
+      return res.status(200).json({ updated: 0 })
+    }
+
+    const { description, amount, type, category, date, notes, frequency, recurrence, installment_total, due_date } = req.body || {}
+    if (!description || !amount || !type) {
+      return res.status(400).json({ error: 'Descrição, valor e tipo são obrigatórios' })
+    }
+
+    const baseDate = date || due_date || new Date().toISOString().slice(0,10)
+    const nInstallments = Number(installment_total) || 1
+    const freq = recurrence === 'installment' ? 'once'
+      : recurrence === 'fixed_monthly' ? 'monthly'
+      : recurrence === 'fixed_weekly' ? 'weekly'
+      : recurrence === 'fixed_yearly' ? 'yearly'
+      : frequency || 'once'
+
+    if (recurrence === 'installment' && nInstallments > 1) {
+      const perInstallment = +(Number(amount) / nInstallments).toFixed(2)
+      const records = []
+      for (let i = 0; i < nInstallments; i++) {
+        const [y, mo, d] = baseDate.split('-').map(Number)
+        const dt = new Date(y, mo - 1 + i, d)
+        records.push({
+          user_id: userId, description: `${description} (${i+1}/${nInstallments})`,
+          amount: perInstallment, type, category: category || 'outros',
+          date: dt.toISOString().slice(0,10), notes: notes || null, frequency: 'once',
+        })
+      }
+      const { data, error } = await supabase.from('transactions').insert(records).select()
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(201).json(data)
+    }
+
+    const record = {
+      user_id: userId, description, amount: Number(amount), type,
+      category: category || 'outros', date: baseDate,
+      notes: notes || null, frequency: freq,
+    }
+    const { data, error } = await supabase.from('transactions').insert(record).select().single()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(201).json(data)
+  }
+
+  // PUT
+  if (req.method === 'PUT' && id) {
+    const allowed = ['description','amount','type','category','date','notes','frequency']
+    const updates = { updated_at: new Date().toISOString() }
+    for (const f of allowed) {
+      if (req.body?.[f] !== undefined) updates[f] = req.body[f]
+    }
+    const { data, error } = await supabase.from('transactions').update(updates)
+      .eq('id', id).eq('user_id', userId).select().single()
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(200).json(data)
+  }
+
+  // DELETE
+  if (req.method === 'DELETE' && id) {
+    const { data: snap } = await supabase.from('transactions').select('*').eq('id', id).eq('user_id', userId).single()
+    if (snap) {
+      await supabase.from('transaction_audit_log').insert({
+        user_id: userId, action: 'deleted', transaction_id: id, transaction_data: snap
+      }).catch(() => {})
+    }
+    const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', userId)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.status(204).end()
+  }
+
+  return res.status(405).json({ error: 'Método não permitido' })
+}

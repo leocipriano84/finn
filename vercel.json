@@ -1,11 +1,6 @@
 {
   "version": 2,
-  "buildCommand": null,
   "outputDirectory": "public",
-  "devCommand": null,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ],
   "headers": [
     {
       "source": "/(.*)",

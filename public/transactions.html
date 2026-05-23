@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transações — Finn</title>
+<link rel="stylesheet" href="/lib/app.css">
+<style>
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filter-input { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s; min-height: 40px; }
+  .filter-input:focus { border-color: var(--green); }
+  .filter-input::placeholder { color: #3d3d4a; }
+  .search-wrap { flex: 1; min-width: 180px; position: relative; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+  .search-input { width: 100%; padding-left: 34px; }
+  select.filter-input { cursor: pointer; }
+  .filter-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 9px 14px; border-radius: 10px; font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; min-height: 40px; transition: all 0.2s; white-space: nowrap; }
+  .filter-btn:hover { border-color: var(--green); color: var(--green); }
+  .filter-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,245,160,0.08); }
+  .date-range { display: flex; gap: 6px; align-items: center; }
+  .date-range-sep { color: var(--muted); font-size: 12px; }
+
+  .tx-groups { display: flex; flex-direction: column; gap: 4px; }
+  .tx-group-date { font-size: 12px; font-weight: 600; color: var(--muted); padding: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .tx-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 12px; transition: background 0.15s; }
+  .tx-item:hover { background: rgba(255,255,255,0.025); }
+  .tx-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .tx-info { flex: 1; min-width: 0; }
+  .tx-desc { font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tx-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
+  .tx-cat-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 100px; background: rgba(255,255,255,0.06); color: var(--muted); }
+  .tx-source { font-size: 10px; color: var(--muted); }
+  .tx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .tx-amount { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; }
+  .tx-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+  .tx-item:hover .tx-actions { opacity: 1; }
+  @media (max-width: 600px) { .tx-actions { opacity: 1; } }
+  .tx-action-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; font-size: 13px; transition: all 0.15s; }
+  .tx-action-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+  .tx-action-btn.del:hover { color: var(--red); }
+
+  .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px 0 4px; }
+  .page-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .page-btn:hover { border-color: var(--green); color: var(--green); }
+  .page-btn.active { background: rgba(0,245,160,0.1); border-color: var(--green); color: var(--green); font-weight: 600; }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: var(--muted); padding: 0 8px; }
+
+  /* Import tabs */
+  .tab-bar { display: flex; gap: 3px; background: rgba(255,255,255,0.03); border-radius: 10px; padding: 3px; margin-bottom: 16px; }
+  .tab-btn { flex: 1; padding: 8px; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; color: var(--muted); transition: all 0.2s; }
+  .tab-btn.active { background: var(--border); color: var(--text); }
+  .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--green); background: rgba(0,245,160,0.04); }
+  .drop-icon { font-size: 36px; margin-bottom: 10px; }
+  .drop-text { font-size: 14px; color: var(--muted); }
+  .drop-text strong { color: var(--text); }
+  .drop-input { display: none; }
+  .preview-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .preview-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid rgba(26,26,42,0.5); font-size: 12px; }
+  .preview-item:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<div class="app-wrap">
+  <aside class="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo">
+      <div class="logo-icon">F</div>
+      <span class="logo-text">finn</span>
+    </a>
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item"><span class="nav-icon">🏠</span>Dashboard</a>
+      <a href="/transactions.html" class="nav-item active"><span class="nav-icon">💳</span>Transações</a>
+      <a href="/goals.html" class="nav-item"><span class="nav-icon">🎯</span>Metas</a>
+      <a href="/reports.html" class="nav-item"><span class="nav-icon">📊</span>Relatórios</a>
+      <a href="/coach.html" class="nav-item"><span class="nav-icon">🤖</span>Coach IA</a>
+      <a href="/referrals.html" class="nav-item"><span class="nav-icon">🎁</span>Indicações</a>
+      <a href="/profile.html" class="nav-item"><span class="nav-icon">👤</span>Perfil</a>
+      <a href="/help.html" class="nav-item"><span class="nav-icon">❓</span>Ajuda</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-info">
+        <div class="user-avatar" id="sidebarAvatar">?</div>
+        <div><div class="user-name" id="sidebarName">...</div><div class="user-plan" id="sidebarPlan">Plano Grátis</div></div>
+      </div>
+      <button class="btn-logout" onclick="FinnAuth.logout()">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-inner">
+      <div class="page-header">
+        <div><h1 class="page-title">Transações</h1><p class="page-subtitle" id="txCount">Carregando...</p></div>
+        <div class="page-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openImport()">↑ Importar</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportCSV()">↓ Exportar</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal()">+ Nova</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="filter-input search-input" id="searchInput" placeholder="Buscar por descrição..." oninput="debounceLoad()">
+        </div>
+        <select class="filter-input" id="typeFilter" onchange="loadTx()" style="min-width:130px;">
+          <option value="">Todos os tipos</option>
+          <option value="income">Receitas</option>
+          <option value="expense">Despesas</option>
+        </select>
+        <select class="filter-input" id="catFilter" onchange="loadTx()" style="min-width:140px;">
+          <option value="">Todas as categorias</option>
+          <option value="salario">Salário</option>
+          <option value="freelance">Freelance</option>
+          <option value="alimentacao">Alimentação</option>
+          <option value="mercado">Mercado</option>
+          <option value="transporte">Transporte</option>
+          <option value="moradia">Moradia</option>
+          <option value="saude">Saúde</option>
+          <option value="lazer">Lazer</option>
+          <option value="compras">Compras</option>
+          <option value="outros">Outros</option>
+        </select>
+        <div class="date-range">
+          <input type="date" class="filter-input" id="fromDate" onchange="loadTx()" style="min-width:130px;">
+          <span class="date-range-sep">até</span>
+          <input type="date" class="filter-input" id="toDate" onchange="loadTx()" style="min-width:130px;">
+        </div>
+      </div>
+
+      <!-- List -->
+      <div id="txGroups" class="tx-groups"></div>
+      <div id="pagination" class="pagination"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-wrap">
+    <a href="/dashboard.html" class="bnav-item"><span class="bnav-icon">🏠</span>Início</a>
+    <a href="/transactions.html" class="bnav-item active"><span class="bnav-icon">💳</span>Lançamentos</a>
+    <a href="/goals.html" class="bnav-item"><span class="bnav-icon">🎯</span>Metas</a>
+    <a href="/reports.html" class="bnav-item"><span class="bnav-icon">📊</span>Relatórios</a>
+    <a href="/coach.html" class="bnav-item"><span class="bnav-icon">🤖</span>Coach</a>
+    <a href="/profile.html" class="bnav-item"><span class="bnav-icon">👤</span>Perfil</a>
+  </div>
+</nav>
+
+<!-- Transaction modal -->
+<div class="modal-overlay hidden" id="txModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Nova transação</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <div class="type-toggle" style="margin-bottom:16px;">
+        <button class="type-btn active-income" id="btnIncome" onclick="setType('income')">+ Receita</button>
+        <button class="type-btn" id="btnExpense" onclick="setType('expense')">− Despesa</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor *</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600;font-size:14px;">R$</span>
+          <input type="number" class="form-input" id="fAmount" placeholder="0,00" style="padding-left:36px;" min="0.01" step="0.01">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição *</label>
+        <input type="text" class="form-input" id="fDesc" placeholder="Ex: Almoço no restaurante" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoria *</label>
+        <div class="cat-grid" id="catGrid"></div>
+        <input type="hidden" id="fCat">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data *</label>
+          <input type="date" class="form-input" id="fDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recorrente</label>
+          <select class="form-input" id="fFreq">
+            <option value="">Não</option>
+            <option value="daily">Diário</option>
+            <option value="weekly">Semanal</option>
+            <option value="monthly">Mensal</option>
+            <option value="yearly">Anual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea class="form-input" id="fNotes" placeholder="Opcional..." rows="2" maxlength="500"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTx()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-overlay hidden" id="importModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Importar extrato</h2>
+      <button class="modal-close" onclick="closeImport()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabFile" onclick="switchTab('file')">Arquivo (CSV)</button>
+        <button class="tab-btn" id="tabText" onclick="switchTab('text')">Colar texto</button>
+      </div>
+      <div id="tabFileContent">
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <div class="drop-icon">📂</div>
+          <div class="drop-text"><strong>Clique ou arraste</strong> o arquivo aqui<br>CSV, XLS, XLSX — máx. 5MB</div>
+        </div>
+        <input type="file" class="drop-input" id="fileInput" accept=".csv,.xls,.xlsx,.ofx" onchange="handleFile(event)">
+        <div id="filePreview" style="margin-top:12px;display:none;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;" id="previewCount"></div>
+          <div class="preview-list" id="previewList"></div>
+        </div>
+      </div>
+      <div id="tabTextContent" style="display:none;">
+        <textarea class="form-input" id="pasteText" rows="8" placeholder="Cole aqui o texto do extrato bancário...&#10;&#10;O Finn detecta automaticamente data, valor e descrição."></textarea>
+        <div class="form-hint">Funciona com extratos copiados de qualquer banco.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeImport()">Cancelar</button>
+      <button class="btn btn-primary" onclick="doImport()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/lib/auth.js"></script>
+<script>
+  const CAT_DATA = {
+    income: [
+      { id:'salario', icon:'💼', name:'Salário' }, { id:'freelance', icon:'💻', name:'Freelance' },
+      { id:'investimentos', icon:'📈', name:'Invest.' }, { id:'presente', icon:'🎁', name:'Presente' },
+      { id:'transferencia', icon:'↔️', name:'Transfer.' }, { id:'outros', icon:'💰', name:'Outros' }
+    ],
+    expense: [
+      { id:'alimentacao', icon:'🍽️', name:'Alimentação' }, { id:'mercado', icon:'🛒', name:'Mercado' },
+      { id:'transporte', icon:'🚗', name:'Transporte' }, { id:'moradia', icon:'🏠', name:'Moradia' },
+      { id:'saude', icon:'💊', name:'Saúde' }, { id:'educacao', icon:'📚', name:'Educação' },
+      { id:'lazer', icon:'🎬', name:'Lazer' }, { id:'compras', icon:'🛍️', name:'Compras' },
+      { id:'contas', icon:'⚡', name:'Contas' }, { id:'assinaturas', icon:'📱', name:'Assinat.' },
+      { id:'viagem', icon:'✈️', name:'Viagem' }, { id:'pet', icon:'🐾', name:'Pet' },
+      { id:'filhos', icon:'👶', name:'Filhos' }, { id:'outros', icon:'💰', name:'Outros' }
+    ]
+  };
+  const CAT_NAMES = {};
+  [...CAT_DATA.income, ...CAT_DATA.expense].forEach(c => CAT_NAMES[c.id] = c.name);
+
+  let currentType = 'income';
+  let currentPage = 1;
+  let debounceTimer = null;
+  let parsedRows = [];
+
+  async function init() {
+    const session = await FinnAuth.checkAuth();
+    if (!session) return;
+    FinnUI.setNavUser(session.user.user_metadata?.name, null);
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+    renderCatGrid('income');
+    loadTx();
+    // Load profile for plan
+    try {
+      FinnUI.setNavUser(session.user.user_metadata?.name, null);
+    } catch {}
+  }
+
+  function debounceLoad() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { currentPage = 1; loadTx(); }, 400);
+  }
+
+  async function loadTx() {
+    const search = document.getElementById('searchInput').value;
+    const type = document.getElementById('typeFilter').value;
+    const cat = document.getElementById('catFilter').value;
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+    const params = new URLSearchParams({ page: currentPage, limit: 20 });
+    if (search) params.set('search', search);
+    if (type) params.set('type', type);
+    if (cat) params.set('category', cat);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+
+    document.getElementById('txGroups').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">Carregando...</div>';
+    try {
+      const res = await FinnAuth.apiCall('/api/transactions?' + params);
+      const data = await res.json();
+      const total = data.count || data.total || 0;
+      const pages = Math.ceil(total / 20) || 1;
+      document.getElementById('txCount').textContent = `${total} transação${total !== 1 ? 'ões' : ''}`;
+      renderGroups(data.data);
+      renderPagination(data.page, pages);
+    } catch {
+      document.getElementById('txGroups').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">Erro ao carregar</div>';
+    }
+  }
+
+  function renderGroups(txs) {
+    const el = document.getElementById('txGroups');
+    if (!txs.length) {
+      el.innerHTML = '<div style="text-align:center;padding:60px 24px;"><div style="font-size:48px;margin-bottom:16px;">💸</div><div style="font-family:\'Syne\',sans-serif;font-weight:700;font-size:18px;margin-bottom:8px;">Nenhuma transação</div><p style="color:var(--muted);font-size:14px;margin-bottom:20px;">Adicione seu primeiro lançamento</p><button class="btn btn-primary btn-sm" onclick="openModal()">+ Nova transação</button></div>';
+      return;
+    }
+    const grouped = {};
+    txs.forEach(t => { if (!grouped[t.date]) grouped[t.date] = []; grouped[t.date].push(t); });
+    el.innerHTML = Object.entries(grouped).map(([date, items]) => {
+      const dayTotal = items.reduce((s, t) => s + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+      return `<div>
+        <div class="tx-group-date">
+          <span>${FinnUI.formatDate(date)}</span>
+          <span style="color:${dayTotal>=0?'var(--green)':'var(--red)'}">${dayTotal>=0?'+':''}${FinnUI.formatCurrency(dayTotal)}</span>
+        </div>
+        ${items.map(t => `
+        <div class="tx-item">
+          <div class="tx-icon" style="background:${t.type==='income'?'rgba(0,245,160,0.12)':'rgba(255,107,107,0.1)'};">${catIcon(t.category)}</div>
+          <div class="tx-info">
+            <div class="tx-desc">${t.description || catName(t.category)}</div>
+            <div class="tx-meta">
+              <span class="tx-cat-badge">${catName(t.category)}</span>
+              ${t.source === 'open_finance' ? '<span class="tx-source">🏦 banco</span>' : ''}
+            </div>
+          </div>
+          <div class="tx-right">
+            <div class="tx-amount" style="color:${t.type==='income'?'var(--green)':'var(--red)'}">
+              ${t.type==='income'?'+':'-'}${FinnUI.formatCurrency(t.amount)}
+            </div>
+            <div class="tx-actions">
+              <button class="tx-action-btn" onclick="editTx(${JSON.stringify(t).replace(/"/g,'&quot;')})" title="Editar">✏️</button>
+              <button class="tx-action-btn del" onclick="deleteTx('${t.id}')" title="Excluir">🗑️</button>
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  function renderPagination(page, pages) {
+    const el = document.getElementById('pagination');
+    if (pages <= 1) { el.innerHTML = ''; return; }
+    let html = `<button class="page-btn" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>‹</button>`;
+    for (let i = Math.max(1, page-2); i <= Math.min(pages, page+2); i++) {
+      html += `<button class="page-btn ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    html += `<button class="page-btn" onclick="goPage(${page+1})" ${page>=pages?'disabled':''}>›</button>`;
+    html += `<span class="page-info">${page}/${pages}</span>`;
+    el.innerHTML = html;
+  }
+
+  function goPage(p) { currentPage = p; loadTx(); window.scrollTo(0,0); }
+
+  function catIcon(cat) {
+    const icons = { salario:'💼', freelance:'💻', investimentos:'📈', presente:'🎁', transferencia:'↔️', alimentacao:'🍽️', mercado:'🛒', transporte:'🚗', moradia:'🏠', saude:'💊', educacao:'📚', lazer:'🎬', compras:'🛍️', contas:'⚡', assinaturas:'📱', viagem:'✈️', pet:'🐾', filhos:'👶', outros:'💰' };
+    return icons[cat] || '💰';
+  }
+  function catName(cat) { return CAT_NAMES[cat] || cat; }
+
+  function openModal(type = 'income') {
+    document.getElementById('editId').value = '';
+    document.getElementById('modalTitle').textContent = 'Nova transação';
+    document.getElementById('fAmount').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fCat').value = '';
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fFreq').value = '';
+    document.getElementById('fNotes').value = '';
+    setType(type);
+    document.getElementById('txModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('fAmount').focus(), 100);
+  }
+
+  function closeModal() { document.getElementById('txModal').classList.add('hidden'); }
+
+  function editTx(t) {
+    document.getElementById('editId').value = t.id;
+    document.getElementById('modalTitle').textContent = 'Editar transação';
+    document.getElementById('fAmount').value = t.amount;
+    document.getElementById('fDesc').value = t.description || '';
+    document.getElementById('fDate').value = t.date;
+    document.getElementById('fNotes').value = t.notes || '';
+    setType(t.type);
+    selectCat(t.category);
+    document.getElementById('txModal').classList.remove('hidden');
+  }
+
+  function setType(type) {
+    currentType = type;
+    document.getElementById('btnIncome').className = type === 'income' ? 'type-btn active-income' : 'type-btn';
+    document.getElementById('btnExpense').className = type === 'expense' ? 'type-btn active-expense' : 'type-btn';
+    renderCatGrid(type);
+  }
+
+  function renderCatGrid(type) {
+    const cats = CAT_DATA[type] || CAT_DATA.expense;
+    const selected = document.getElementById('fCat').value;
+    document.getElementById('catGrid').innerHTML = cats.map(c =>
+      `<button type="button" class="cat-btn ${c.id===selected?'selected':''}" onclick="selectCat('${c.id}')">
+        <span class="cat-btn-icon">${c.icon}</span>${c.name}
+      </button>`).join('');
+  }
+
+  function selectCat(id) {
+    document.getElementById('fCat').value = id;
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.cat-btn').forEach(b => { if (b.textContent.trim().includes(CAT_NAMES[id] || '')) b.classList.add('selected'); });
+    renderCatGrid(currentType);
+  }
+
+  async function saveTx() {
+    const id = document.getElementById('editId').value;
+    const amount = parseFloat(document.getElementById('fAmount').value);
+    const description = document.getElementById('fDesc').value.trim();
+    const category = document.getElementById('fCat').value;
+    const date = document.getElementById('fDate').value;
+    const notes = document.getElementById('fNotes').value.trim();
+
+    if (!amount || amount <= 0) { FinnUI.toast('Informe um valor válido', 'error'); return; }
+    if (!description) { FinnUI.toast('Informe uma descrição', 'error'); return; }
+    if (!category) { FinnUI.toast('Selecione uma categoria', 'error'); return; }
+    if (!date) { FinnUI.toast('Informe a data', 'error'); return; }
+
+    try {
+      const url = id ? `/api/transactions?id=${id}` : '/api/transactions';
+      const method = id ? 'PUT' : 'POST';
+      const body = { amount, type: currentType, category, description, date, notes };
+      const res = await FinnAuth.apiCall(url, { method, body });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      FinnUI.toast(id ? 'Transação atualizada!' : 'Transação criada!');
+      closeModal();
+      loadTx();
+    } catch (e) {
+      FinnUI.toast(e.message || 'Erro ao salvar', 'error');
+    }
+  }
+
+  async function deleteTx(id) {
+    const ok = await FinnUI.confirm({ title: 'Excluir transação', text: 'Esta ação não pode ser desfeita.', confirmText: 'Excluir', danger: true, icon: '🗑️' });
+    if (!ok) return;
+    try {
+      const res = await FinnAuth.apiCall(`/api/transactions?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      FinnUI.toast('Transação excluída');
+      loadTx();
+    } catch { FinnUI.toast('Erro ao excluir', 'error'); }
+  }
+
+  async function exportCSV() {
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+    const type = document.getElementById('typeFilter').value;
+    const params = new URLSearchParams({ format: 'csv' });
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (type) params.set('type', type);
+    const token = await FinnAuth.getToken();
+    window.open('/api/transactions?action=export&' + params + '&token=' + token);
+  }
+
+  // Import
+  function openImport() { document.getElementById('importModal').classList.remove('hidden'); }
+  function closeImport() { document.getElementById('importModal').classList.add('hidden'); parsedRows = []; document.getElementById('filePreview').style.display = 'none'; }
+  function switchTab(tab) {
+    document.getElementById('tabFile').classList.toggle('active', tab==='file');
+    document.getElementById('tabText').classList.toggle('active', tab==='text');
+    document.getElementById('tabFileContent').style.display = tab==='file'?'':'none';
+    document.getElementById('tabTextContent').style.display = tab==='text'?'':'none';
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }
+
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+  }
+
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const lines = text.split('\n').filter(l => l.trim()).slice(1, 6);
+      document.getElementById('previewCount').textContent = `Arquivo: ${file.name} — ${text.split('\n').length - 1} linhas`;
+      document.getElementById('previewList').innerHTML = lines.map(l => `<div class="preview-item"><span>${l.substring(0,80)}...</span></div>`).join('');
+      document.getElementById('filePreview').style.display = '';
+      parsedRows = [{ _raw: text }];
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function doImport() {
+    let body = {};
+    const activeTab = document.getElementById('tabFile').classList.contains('active');
+    if (activeTab) {
+      if (!parsedRows.length) { FinnUI.toast('Selecione um arquivo', 'warning'); return; }
+      body = { text: parsedRows[0]._raw };
+    } else {
+      const text = document.getElementById('pasteText').value.trim();
+      if (!text) { FinnUI.toast('Cole o texto do extrato', 'warning'); return; }
+      body = { text };
+    }
+    try {
+      const res = await FinnAuth.apiCall('/api/transactions/import', { method: 'POST', body });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      FinnUI.toast(`${data.imported} transações importadas! (${data.duplicates} duplicadas ignoradas)`);
+      closeImport();
+      loadTx();
+    } catch (e) { FinnUI.toast(e.message || 'Erro na importação', 'error'); }
+  }
+
+  document.getElementById('txModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+  document.getElementById('importModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeImport(); });
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+/* ================================================
+   KEYFRAMES
+   ================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes scaleIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes progress {
+  from { width: 0; }
+}
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ripple {
+  from { transform: scale(0); opacity: 0.6; }
+  to   { transform: scale(2.5); opacity: 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+/* ================================================
+   UTILITY CLASSES
+   ================================================ */
+.animate-fade-in     { animation: fadeIn 200ms ease; }
+.animate-fade-in-up  { animation: fadeInUp 250ms ease; }
+.animate-scale-in    { animation: scaleIn 200ms ease; }
+.animate-pulse       { animation: pulse 2s ease-in-out infinite; }
+.animate-spin        { animation: spin 0.8s linear infinite; }
+.animate-float       { animation: float 3s ease-in-out infinite; }
+
+/* Page transition */
+.page-enter {
+  animation: fadeInUp 200ms ease both;
+}
+
+/* Staggered list items */
+.stagger-item {
+  animation: fadeInUp 200ms ease both;
+}
+.stagger-item:nth-child(1)  { animation-delay: 0ms; }
+.stagger-item:nth-child(2)  { animation-delay: 40ms; }
+.stagger-item:nth-child(3)  { animation-delay: 80ms; }
+.stagger-item:nth-child(4)  { animation-delay: 120ms; }
+.stagger-item:nth-child(5)  { animation-delay: 160ms; }
+.stagger-item:nth-child(6)  { animation-delay: 200ms; }
+.stagger-item:nth-child(7)  { animation-delay: 240ms; }
+.stagger-item:nth-child(8)  { animation-delay: 280ms; }
+
+/* Loading spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border-light);
+  border-top-color: var(--color-green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+.spinner-sm { width: 14px; height: 14px; border-width: 2px; }
+.spinner-lg { width: 32px; height: 32px; border-width: 3px; }
+
+/* Progress bar animation */
+.progress-bar-fill { animation: progress 800ms ease-out both; }
+
+/* Card hover micro-interaction */
+.card-interactive {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+.card-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  border-color: var(--color-border-light);
+}
+.card-interactive:active { transform: translateY(0); }
+
+/* Ripple effect on buttons */
+.btn { position: relative; overflow: hidden; }
+.btn::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(255,255,255,0.1);
+  border-radius: inherit;
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.4s, opacity 0.4s;
+}
+.btn:active::after {
+  transform: scale(1);
+  opacity: 1;
+  transition: 0s;
+}
+
+/* Value change animation */
+.value-changed {
+  animation: countUp 300ms ease;
+}
+
+/* Pulsing dot (status online) */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-green);
+  position: relative;
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--color-green);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Tab transition */
+.tab-content { animation: fadeIn 150ms ease; }
+
+/* Number transition */
+@keyframes numberRoll {
+  from { transform: translateY(-50%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.number-roll { animation: numberRoll 300ms ease; overflow: hidden; }
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

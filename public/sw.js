@@ -1,15 +1,26 @@
 // public/sw.js — Service Worker do Finn
 // Permite uso offline, cache inteligente e notificações push
 
-const CACHE_NAME = 'finn-v1'
-const STATIC_CACHE = 'finn-static-v1'
+const VERSION = 'v2'
+const CACHE_NAME = `finn-${VERSION}`
+const STATIC_CACHE = `finn-static-${VERSION}`
 
 // Arquivos para cachear no install (funciona offline)
 const STATIC_ASSETS = [
-  '/',
+  '/app.html',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/css/variables.css',
+  '/css/base.css',
+  '/css/components.css',
+  '/css/layout.css',
+  '/css/animations.css',
+  '/js/core/utils.js',
+  '/js/core/store.js',
+  '/js/core/api.js',
+  '/js/core/auth.js',
+  '/js/core/notifications.js',
+  '/js/core/router.js',
+  '/js/core/components.js',
 ]
 
 // ─── Install: pre-cacheia assets estáticos ───
