@@ -232,6 +232,7 @@ import { Toast } from '/js/core/notifications.js'
 import { Theme } from '/js/core/theme.js'
 import { VoiceInput, parseVoiceText } from '/js/core/voice.js'
 
+;(async () => {
 console.log('[Finn] módulo iniciando, supabase disponível:', typeof supabase)
 
 // Registra service worker
@@ -248,9 +249,9 @@ try {
   console.log('[Finn] Supabase client criado')
 } catch (e) {
   console.error('[Finn] Falha ao criar Supabase client:', e)
-  window.location.href = '/login.html'
   document.getElementById('appLoading')?.remove()
-  throw e
+  window.location.href = '/login.html'
+  return
 }
 
 // Verifica auth — com timeout de segurança para não travar em loading
@@ -264,9 +265,9 @@ try {
   console.log('[Finn] sessão:', session ? 'autenticado' : 'sem sessão')
 } catch (e) {
   console.warn('[Finn] auth falhou ou timeout:', e.message)
-  window.location.href = '/login.html'
   document.getElementById('appLoading')?.remove()
-  throw e
+  window.location.href = '/login.html'
+  return
 }
 
 // Remove loading screen SEMPRE — com ou sem sessão
@@ -477,6 +478,12 @@ auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT' || !session) {
     window.location.href = '/login.html'
   }
+})
+
+})().catch(e => {
+  console.error('[Finn] erro fatal na inicialização:', e)
+  document.getElementById('appLoading')?.remove()
+  if (!window.__appReady) window.location.href = '/login.html'
 })
 </script>
 </body>
