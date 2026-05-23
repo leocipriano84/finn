@@ -22,17 +22,21 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método não permitido' })
 
-  const { action, month, type } = req.query
-  const currentMonth = month || new Date().toISOString().slice(0,7)
+  const { action, month, year, type } = req.query
+  // Support both ?month=YYYY-MM and ?month=M&year=YYYY
+  let currentMonth
+  if (year && month) {
+    currentMonth = `${year}-${String(Number(month)).padStart(2,'0')}`
+  } else if (month && month.includes('-')) {
+    currentMonth = month
+  } else {
+    currentMonth = new Date().toISOString().slice(0,7)
+  }
   const { start, end } = monthRange(currentMonth)
 
   // DASHBOARD — formato compatível com dashboard.html antigo
   if (action === 'dashboard') {
-    const { month: qMonth, year: qYear } = req.query
-    let mKey = currentMonth
-    if (qYear && qMonth) {
-      mKey = `${qYear}-${String(qMonth).padStart(2,'0')}`
-    }
+    const mKey = currentMonth
     const { start: mStart, end: mEnd } = monthRange(mKey)
     const [y, m] = mKey.split('-').map(Number)
 
@@ -107,11 +111,11 @@ export default async function handler(req, res) {
   if (action === 'summary') {
     const [txRes, budgetRes] = await Promise.all([
       supabase.from('transactions').select('*').eq('user_id', userId).gte('date', start).lte('date', end),
-      supabase.from('budgets').select('*').eq('user_id', userId).eq('month_year', currentMonth).catch(() => ({ data: [] })),
+      supabase.from('budgets').select('*').eq('user_id', userId).eq('month_year', currentMonth),
     ])
 
     const txs = txRes.data || []
-    const budgets = (budgetRes.data || budgetRes?.data) || []
+    const budgets = budgetRes.data || []
 
     const income_confirmed  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0)
     const expense_confirmed = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0)

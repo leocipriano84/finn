@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     }
 
     // List
-    const { month, type, status, category, search, page = 1, limit = 50, date_start, date_end } = req.query
+    const { month, year, type, status, category, search, page = 1, limit = 50, date_start, date_end } = req.query
 
     let query = supabase.from('transactions').select('*').eq('user_id', userId)
 
