@@ -299,14 +299,15 @@ async function init() {
 
 async function loadProfile() {
   try {
-    profile = await FinnAuth.apiCall('/api/user/profile')
+    const res = await FinnAuth.apiCall('/api/user?action=profile')
+    profile = res.ok ? await res.json() : {}
     renderProfile(profile)
     checkAchievements()
   } catch(e) { FinnUI.toast('Erro ao carregar perfil', 'error') }
 }
 
 async function checkAchievements() {
-  try { await FinnAuth.apiCall('/api/user/gamification', { method:'POST' }) } catch(e) {}
+  try { await FinnAuth.apiCall('/api/user?action=gamification', { method:'POST' }) } catch(e) {}
 }
 
 function renderProfile(p) {
@@ -379,14 +380,12 @@ function renderSubscription(p) {
 }
 
 async function loadAchievements(p) {
-  let unlocked = []
+  let earnedSet = new Set()
   try {
-    const data = await FinnAuth.apiCall('/api/user/gamification', { method:'POST' })
-    unlocked = data.unlocked || []
+    const res = await FinnAuth.apiCall('/api/user?action=achievements')
+    const list = res.ok ? await res.json() : []
+    earnedSet = new Set((list || []).filter(a => a.unlocked).map(a => a.id))
   } catch(e) {}
-
-  const { data: existing } = await FinnAuth.getClient().from('user_achievements').select('achievement_id').eq('user_id', p.id || '')
-  const earnedSet = new Set((existing || []).map(a => a.achievement_id))
 
   const grid = document.getElementById('badgeGrid')
   grid.innerHTML = ALL_ACHIEVEMENTS.map(a => `
@@ -401,7 +400,7 @@ async function loadAchievements(p) {
 function selectPersonality(el) {
   document.querySelectorAll('.personality-card').forEach(c => c.classList.remove('active'))
   el.classList.add('active')
-  FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ personality_id: el.dataset.id }) })
+  FinnAuth.apiCall('/api/user?action=profile', { method:'PUT', body: JSON.stringify({ personality_id: el.dataset.id }) })
     .then(() => FinnUI.toast('Perfil atualizado'))
     .catch(() => FinnUI.toast('Erro ao salvar', 'error'))
 }
@@ -412,7 +411,7 @@ async function savePersonalInfo() {
   const monthStart = parseInt(document.getElementById('fieldMonthStart').value)
   if (!name) return FinnUI.toast('Nome é obrigatório', 'warning')
   try {
-    await FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ name, monthly_income: income, financial_month_start: monthStart }) })
+    await FinnAuth.apiCall('/api/user?action=profile', { method:'PUT', body: JSON.stringify({ name, monthly_income: income, financial_month_start: monthStart }) })
     FinnUI.toast('Alterações salvas')
     document.getElementById('profileName').textContent = name
     document.getElementById('sidebarName').textContent = name
@@ -427,7 +426,7 @@ async function saveNotifPrefs() {
     coach: document.getElementById('notifCoach').checked
   }
   try {
-    await FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ notification_prefs: prefs }) })
+    await FinnAuth.apiCall('/api/user?action=profile', { method:'PUT', body: JSON.stringify({ notification_prefs: prefs }) })
   } catch(e) {}
 }
 
@@ -439,7 +438,7 @@ async function handleAvatarChange(event) {
   reader.onload = async (e) => {
     const base64 = e.target.result
     try {
-      const res = await FinnAuth.apiCall('/api/user/profile', { method:'PUT', body: JSON.stringify({ avatar_url: base64 }) })
+      const res = await FinnAuth.apiCall('/api/user?action=profile', { method:'PUT', body: JSON.stringify({ avatar_url: base64 }) })
       document.getElementById('avatarDisplay').innerHTML = `<img src="${base64}" alt="Avatar">`
       FinnUI.toast('Foto atualizada')
     } catch(err) { FinnUI.toast('Erro ao salvar foto', 'error') }
@@ -450,7 +449,7 @@ async function handleAvatarChange(event) {
 async function exportData() {
   try {
     const token = await FinnAuth.getToken()
-    const res = await fetch('/api/user/export-data', { headers: { Authorization: 'Bearer ' + token } })
+    const res = await fetch('/api/user?action=export-data', { headers: { Authorization: 'Bearer ' + token } })
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -482,7 +481,7 @@ async function deleteAccount() {
   const confirm = document.getElementById('deleteConfirm').value.trim()
   if (confirm !== 'EXCLUIR MINHA CONTA') return FinnUI.toast('Digite exatamente: EXCLUIR MINHA CONTA', 'warning')
   try {
-    await FinnAuth.apiCall('/api/user/delete', { method:'DELETE', body: JSON.stringify({ confirm }) })
+    await FinnAuth.apiCall('/api/user?action=delete', { method:'DELETE', body: JSON.stringify({ confirm }) })
     await FinnAuth.logout()
     window.location.href = '/login.html'
   } catch(e) { FinnUI.toast('Erro ao excluir conta', 'error') }

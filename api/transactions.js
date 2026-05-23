@@ -18,8 +18,12 @@ export default async function handler(req, res) {
   // GET
   if (req.method === 'GET') {
     if (action === 'summary') {
-      const { month } = req.query
-      const [y, m] = (month || new Date().toISOString().slice(0,7)).split('-')
+      const { month, year } = req.query
+      let monthKey
+      if (year && month) monthKey = `${year}-${String(Number(month)).padStart(2,'0')}`
+      else if (month && month.includes('-')) monthKey = month
+      else monthKey = new Date().toISOString().slice(0,7)
+      const [y, m] = monthKey.split('-')
       const start = `${y}-${m}-01`
       const end = new Date(Number(y), Number(m), 0).toISOString().slice(0,10)
 
@@ -67,11 +71,16 @@ export default async function handler(req, res) {
 
     let query = supabase.from('transactions').select('*').eq('user_id', userId)
 
-    if (month) {
-      const [y, m] = month.split('-')
-      const start = `${y}-${m}-01`
-      const end = new Date(Number(y), Number(m), 0).toISOString().slice(0,10)
-      query = query.gte('date', start).lte('date', end)
+    if (month || year) {
+      let monthKey
+      if (year && month) monthKey = `${year}-${String(Number(month)).padStart(2,'0')}`
+      else if (month && month.includes('-')) monthKey = month
+      if (monthKey) {
+        const [y, m] = monthKey.split('-')
+        const mStart = `${y}-${m}-01`
+        const mEnd = new Date(Number(y), Number(m), 0).toISOString().slice(0,10)
+        query = query.gte('date', mStart).lte('date', mEnd)
+      }
     }
     if (date_start) query = query.gte('date', date_start)
     if (date_end)   query = query.lte('date', date_end)

@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   const userId = await getUserId(req)
   if (!userId) return res.status(401).json({ error: 'Não autenticado' })
 
-  const { action } = req.method === 'GET' ? req.query : (req.body || {})
+  const action = req.query.action || req.body?.action
 
   if (req.method === 'GET') {
     if (action === 'profile') {
@@ -66,6 +66,30 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    if (action === 'gamification') {
+      const [txRes, goalsRes] = await Promise.all([
+        supabase.from('transactions').select('id', { count: 'exact' }).eq('user_id', userId),
+        supabase.from('goals').select('id, completed').eq('user_id', userId),
+      ])
+      const txCount = txRes.count ?? (txRes.data || []).length
+      const goals = goalsRes.data || []
+
+      const toEarn = []
+      if (txCount >= 1) toEarn.push('first_transaction')
+      if (txCount >= 100) toEarn.push('100_transactions')
+      if (goals.length >= 1) toEarn.push('goal_created')
+      if (goals.some(g => g.completed)) toEarn.push('goal_completed')
+
+      for (const id of toEarn) {
+        await supabase.from('user_achievements')
+          .upsert({ user_id: userId, achievement_id: id, unlocked_at: new Date().toISOString() }, { onConflict: 'user_id,achievement_id', ignoreDuplicates: true })
+          .catch(() => {})
+      }
+
+      const { data: all } = await supabase.from('user_achievements').select('achievement_id').eq('user_id', userId)
+      return res.status(200).json({ unlocked: (all || []).map(a => a.achievement_id) })
+    }
+
     if (action === 'restore-transaction') {
       const { audit_id } = req.body || {}
       if (!audit_id) return res.status(400).json({ error: 'audit_id obrigatório' })
@@ -116,6 +140,28 @@ export default async function handler(req, res) {
 
       return res.status(200).json(result)
     }
+  }
+
+  if (req.method === 'GET' && action === 'export-data') {
+    const [txRes, profRes] = await Promise.all([
+      supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false }),
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+    ])
+    return res.status(200).json({
+      profile: profRes.data || {},
+      transactions: txRes.data || [],
+      exported_at: new Date().toISOString(),
+    })
+  }
+
+  if (req.method === 'DELETE' && action === 'delete') {
+    const { confirm } = req.body || {}
+    if (confirm !== 'EXCLUIR MINHA CONTA') return res.status(400).json({ error: 'Confirmação inválida' })
+    await supabase.from('transactions').delete().eq('user_id', userId).catch(() => {})
+    await supabase.from('goals').delete().eq('user_id', userId).catch(() => {})
+    await supabase.from('budgets').delete().eq('user_id', userId).catch(() => {})
+    await supabase.auth.admin.deleteUser(userId).catch(() => {})
+    return res.status(200).json({ ok: true })
   }
 
   return res.status(405).json({ error: 'Método não permitido' })

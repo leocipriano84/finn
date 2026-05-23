@@ -123,7 +123,7 @@
     const session = await FinnAuth.getSession();
     if (session) {
       const params = new URLSearchParams(window.location.search);
-      window.location.href = params.get('next') || '/dashboard.html';
+      window.location.href = params.get('next') || '/app.html';
     }
   })();
 
@@ -163,7 +163,7 @@
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) throw error;
       const params = new URLSearchParams(window.location.search);
-      window.location.href = params.get('next') || '/dashboard.html';
+      window.location.href = params.get('next') || '/app.html';
     } catch (err) {
       let msg = 'Erro ao entrar. Verifique suas credenciais.';
       if (err.message?.includes('Invalid login credentials')) msg = 'E-mail ou senha incorretos.';
