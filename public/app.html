@@ -221,21 +221,32 @@ import { Toast } from '/js/core/notifications.js'
 import { Theme } from '/js/core/theme.js'
 import { VoiceInput, parseVoiceText } from '/js/core/voice.js'
 
-// Inicializa Supabase
-const SUPABASE_URL = 'https://ybllxqhhbwxvapektypx.supabase.co'
-const SUPABASE_ANON_KEY = document.head.querySelector('meta[name="supabase-key"]')?.content
-  || window.__SUPABASE_ANON_KEY
-  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlibGx4cWhoYnd4dmFwZWt0eXB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzQzMjEsImV4cCI6MjA2MzQ1MDMyMX0.QLMntGzPjpGF8_2m3Vxr1SJ7RMkmB9qRqFGhP-U5jCg'
-
-window.__supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
 // Registra service worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {})
 }
 
-// Verifica auth
-const session = await auth.requireAuth()
+// Inicializa Supabase com config do servidor (nunca hardcoded)
+try {
+  const cfg = await fetch('/api/auth?action=config').then(r => r.json())
+  if (!cfg.supabaseUrl) throw new Error('config indisponível')
+  window.__supabase = supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey)
+} catch {
+  window.location.href = '/login.html'
+  return
+}
+
+// Verifica auth — com timeout de segurança para não travar em loading
+let session = null
+try {
+  session = await Promise.race([
+    auth.requireAuth(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('auth-timeout')), 8000))
+  ])
+} catch {
+  window.location.href = '/login.html'
+  return
+}
 if (!session) return
 
 // Carrega usuário
