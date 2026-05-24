@@ -38,6 +38,7 @@ async function loadCards() {
   body.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">' + skeletons(3) + '</div>'
   try {
     const cards = await endpoints.cardInvoices({ month: store.getMonth() })
+    store.set('creditCards', cards)
     renderCards(body, cards)
     renderCardsSummaryBar(cards)
   } catch (e) {
@@ -56,7 +57,7 @@ function renderCards(el, cards) {
   el.querySelectorAll('[data-card-id]').forEach(w => {
     w.querySelector('[data-card-edit]')?.addEventListener('click', () => openCardModal(w.dataset.cardId))
     w.querySelector('[data-card-pay]')?.addEventListener('click', () => openPaymentModal(w.dataset.cardId))
-    w.querySelector('[data-card-new-tx]')?.addEventListener('click', () => window.openNewTransaction?.('card'))
+    w.querySelector('[data-card-new-tx]')?.addEventListener('click', () => window.openNewTransaction?.({ type: 'expense_card', credit_card_id: w.dataset.cardId }))
     w.querySelector('[data-card-delete]')?.addEventListener('click', () => deleteCard(w.dataset.cardId, w.dataset.cardName))
   })
 }

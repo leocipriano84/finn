@@ -2,6 +2,8 @@ import { endpoints } from '../core/api.js'
 import { fmt, COLORS } from '../core/utils.js'
 import { Toast, Confirm, Loading } from '../core/notifications.js'
 
+let goalsData = []
+
 export async function render(el) {
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%">
@@ -23,6 +25,7 @@ async function loadGoals() {
   body.innerHTML = Array(3).fill('<div class="skeleton" style="height:140px;border-radius:16px;margin-bottom:12px"></div>').join('')
   try {
     const goals = await endpoints.goals()
+    goalsData = goals
     if (countEl) countEl.textContent = `${goals.length} meta${goals.length !== 1 ? 's' : ''}`
     renderGoals(body, goals)
   } catch (e) {
@@ -105,6 +108,9 @@ function goalCard(g) {
 }
 
 function openGoalModal(id) {
+  const goal = id ? goalsData.find(g => g.id === id) : null
+  const currentColor = goal?.color || COLORS[0]
+
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.innerHTML = `
@@ -112,18 +118,18 @@ function openGoalModal(id) {
       <div class="modal-header"><h3 class="modal-title">${id ? 'Editar meta' : 'Nova meta'}</h3><button class="btn btn-icon" id="gModalClose">✕</button></div>
       <div class="modal-body">
         <div style="text-align:center;margin-bottom:12px">
-          <div id="gIconPreview" style="font-size:40px;cursor:pointer" title="Clique para mudar">🎯</div>
-          <input type="hidden" id="gIcon" value="🎯">
+          <div id="gIconPreview" style="font-size:40px;cursor:pointer" title="Clique para mudar">${goal?.icon || '🎯'}</div>
+          <input type="hidden" id="gIcon" value="${goal?.icon || '🎯'}">
         </div>
-        <div class="form-group"><label class="form-label required">Nome da meta</label><input id="gTitle" class="form-control" placeholder="Ex: Viagem para Europa"></div>
+        <div class="form-group"><label class="form-label required">Nome da meta</label><input id="gTitle" class="form-control" placeholder="Ex: Viagem para Europa" value="${goal?.title || ''}"></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label required">Valor alvo</label><input id="gTarget" class="form-control" type="number" step="0.01" placeholder="0,00"></div>
-          <div class="form-group"><label class="form-label">Já tenho</label><input id="gCurrent" class="form-control" type="number" step="0.01" value="0"></div>
+          <div class="form-group"><label class="form-label required">Valor alvo</label><input id="gTarget" class="form-control" type="number" step="0.01" placeholder="0,00" value="${goal?.target_amount || ''}"></div>
+          <div class="form-group"><label class="form-label">Já tenho</label><input id="gCurrent" class="form-control" type="number" step="0.01" value="${goal?.current_amount || 0}"></div>
         </div>
-        <div class="form-group"><label class="form-label">Prazo</label><input id="gDeadline" class="form-control" type="date"></div>
+        <div class="form-group"><label class="form-label">Prazo</label><input id="gDeadline" class="form-control" type="date" value="${goal?.deadline || ''}"></div>
         <div class="form-group"><label class="form-label">Cor</label>
-          <div class="color-picker">${COLORS.map(c => `<div class="color-swatch" style="background:${c}" data-color="${c}"></div>`).join('')}</div>
-          <input type="hidden" id="gColor" value="${COLORS[0]}">
+          <div class="color-picker">${COLORS.map(c => `<div class="color-swatch ${c === currentColor ? 'selected' : ''}" style="background:${c}" data-color="${c}"></div>`).join('')}</div>
+          <input type="hidden" id="gColor" value="${currentColor}">
         </div>
       </div>
       <div class="modal-footer">

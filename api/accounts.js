@@ -47,8 +47,9 @@ export default async function handler(req, res) {
 
         const balance = Number(acc.initial_balance) + income_confirmed - expense_confirmed + transfer_in - transfer_out
         const forecast = balance + income_pending - expense_pending
+        const available_balance = balance + (Number(acc.overdraft_limit) || 0)
 
-        return { ...acc, income_confirmed, expense_confirmed, transfer_in, transfer_out, income_pending, expense_pending, balance, forecast }
+        return { ...acc, income_confirmed, expense_confirmed, transfer_in, transfer_out, income_pending, expense_pending, balance, forecast, available_balance }
       })
 
       return res.status(200).json(accounts)

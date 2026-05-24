@@ -317,6 +317,13 @@ function openAvatarPicker() {
     <div class="modal" style="max-width:360px">
       <div class="modal-header"><h3 class="modal-title">Escolher avatar</h3><button class="btn btn-icon" id="avClose">✕</button></div>
       <div class="modal-body">
+        <div style="margin-bottom:12px">
+          <label class="btn btn-secondary btn-sm" style="width:100%;text-align:center;cursor:pointer">
+            📷 Enviar foto
+            <input type="file" id="avFileInput" accept="image/*" style="display:none">
+          </label>
+        </div>
+        <div style="font-size:var(--text-xs);color:var(--color-text-soft);margin-bottom:10px;text-align:center">ou escolha um emoji</div>
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
           ${AVATARS.map(a => `<div class="avatar-opt" data-emoji="${a}" style="font-size:32px;text-align:center;padding:8px;border-radius:10px;cursor:pointer;background:var(--color-card-hover);transition:background 0.15s">${a}</div>`).join('')}
         </div>
@@ -330,18 +337,49 @@ function openAvatarPicker() {
   overlay.querySelector('#avClose')?.addEventListener('click', close)
   overlay.addEventListener('click', e => { if (e.target === overlay) close() })
 
+  overlay.querySelector('#avFileInput')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { Toast.error('Foto muito grande (máx 2MB)'); return }
+    try {
+      const url = await uploadAvatar(file)
+      await endpoints.updateProfile({ avatar_url: url, avatar_emoji: null })
+      const avatarEl = document.getElementById('avatarEl')
+      if (avatarEl) avatarEl.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-radius:50%;background:var(--color-bg);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:10px">✏️</div>`
+      Toast.success('Foto atualizada')
+      close()
+    } catch (err) { Toast.error(err.message) }
+  })
+
   overlay.querySelectorAll('.avatar-opt').forEach(opt => {
     opt.addEventListener('mouseenter', () => { opt.style.background = 'var(--color-green-dim)' })
     opt.addEventListener('mouseleave', () => { opt.style.background = 'var(--color-card-hover)' })
     opt.addEventListener('click', async () => {
       const emoji = opt.dataset.emoji
       try {
-        await endpoints.updateProfile({ avatar_emoji: emoji })
+        await endpoints.updateProfile({ avatar_emoji: emoji, avatar_url: null })
         const avatarEl = document.getElementById('avatarEl')
-        if (avatarEl) avatarEl.childNodes[0].textContent = emoji
+        if (avatarEl) {
+          avatarEl.innerHTML = `${emoji}<div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-radius:50%;background:var(--color-bg);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:10px">✏️</div>`
+        }
         Toast.success('Avatar atualizado')
         close()
       } catch (err) { Toast.error(err.message) }
     })
   })
+}
+
+async function uploadAvatar(file) {
+  const user = store.getUser()
+  if (!user) throw new Error('Não autenticado')
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm')
+  const supabaseUrl = 'https://hycblewhxfkbcduiwbmj.supabase.co'
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5Y2JsZXdoeGZrYmNkdWl3Ym1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjE4NDEsImV4cCI6MjA2MzMzNzg0MX0.9_RyRLxCGZxHgIJSdEfCjVWPdHnrJLH5hKzOiBfOlAw'
+  const sb = createClient(supabaseUrl, supabaseKey)
+  const ext = file.name.split('.').pop()
+  const path = `${user.id}/avatar.${ext}`
+  const { error } = await sb.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type })
+  if (error) throw new Error(error.message)
+  const { data } = sb.storage.from('avatars').getPublicUrl(path)
+  return data.publicUrl + '?t=' + Date.now()
 }

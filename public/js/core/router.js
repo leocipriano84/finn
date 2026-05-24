@@ -65,6 +65,10 @@ async function handleRoute() {
     return
   }
 
+  // Limpar página anterior — dispara cleanup para desinscrever subscriptions
+  const existingPage = contentEl.firstElementChild
+  if (existingPage) existingPage.dispatchEvent(new CustomEvent('__cleanup'))
+
   // Skeleton enquanto carrega
   contentEl.innerHTML = '<div style="padding:24px"><div class="skeleton skeleton-title mb-4" style="height:28px;width:40%"></div>' +
     Array(4).fill('<div class="skeleton" style="height:120px;border-radius:12px;margin-bottom:16px"></div>').join('') + '</div>'

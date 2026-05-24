@@ -79,6 +79,7 @@ function accountRow(acc) {
           <div>
             <div style="font-size:var(--text-sm);font-weight:500">${acc.name}</div>
             ${acc.bank_name ? `<div style="font-size:var(--text-xs);color:var(--color-text-soft)">${bank?.emoji || '🏦'} ${acc.bank_name}</div>` : ''}
+          ${Number(acc.overdraft_limit) > 0 ? `<div style="font-size:var(--text-xs);color:var(--color-blue)">Limite disponível: ${fmt.currency(acc.available_balance)}</div>` : ''}
           </div>
         </div>
       </td>

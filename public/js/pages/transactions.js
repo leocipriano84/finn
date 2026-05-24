@@ -7,6 +7,7 @@ let container = null
 let currentType = 'expense'
 let currentFilters = {}
 let unsubMonth = null
+let cachedTransactions = []
 
 export async function render(el) {
   container = el
@@ -103,6 +104,7 @@ async function loadTransactions() {
       endpoints.txSummary({ month }),
     ])
     const txs = result.data || []
+    cachedTransactions = txs
     renderList(listEl, txs)
     renderSummaryBar(barEl, summary, currentType)
   } catch (e) {
@@ -117,7 +119,7 @@ function renderList(el, txs) {
   }
 
   // Agrupa por data
-  const grouped = groupBy(txs, t => t.due_date)
+  const grouped = groupBy(txs, t => t.due_date || t.date)
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a))
 
   const today = date.today()
@@ -170,8 +172,9 @@ function transactionItem(t) {
   const isIncome  = t.type === 'income'
   const isPending = t.status === 'pending'
   const today = date.today()
-  const isOverdue  = isPending && t.due_date < today
-  const isDueSoon  = isPending && !isOverdue && t.due_date <= date.addDays(today, 3)
+  const txDate = t.due_date || t.date
+  const isOverdue  = isPending && txDate < today
+  const isDueSoon  = isPending && !isOverdue && txDate <= date.addDays(today, 3)
 
   const cat = t.categories || null
   const acc = t.accounts || t.credit_cards || null
@@ -198,7 +201,7 @@ function transactionItem(t) {
         <div class="transaction-amount ${isIncome ? 'value-positive' : isPending ? 'value-pending' : 'value-negative'}">
           ${isIncome ? '+' : '-'}${fmt.currency(t.amount)}
         </div>
-        <div class="transaction-date">${fmt.date(t.due_date, 'short')}</div>
+        <div class="transaction-date">${fmt.date(txDate, 'short')}</div>
         <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px">
           ${isPending ? `<button class="btn-icon btn" style="padding:2px 5px;font-size:12px" data-action="confirm" title="Efetivar">✅</button>` : ''}
           ${(isPending && t.recurrence_group_id) ? `<button class="btn-icon btn" style="padding:2px 5px;font-size:12px" data-action="confirm-batch" title="Efetivar parcelas em lote">✅✅</button>` : ''}
@@ -414,10 +417,7 @@ export async function openTransactionModal(opts = {}) {
   let existing = null
 
   if (id) {
-    try {
-      const res = await endpoints.transactions({ id })
-      existing = res.data?.[0]
-    } catch {}
+    existing = cachedTransactions.find(t => t.id === id) || null
   }
 
   const accounts = store.get('accounts') || []
@@ -467,11 +467,7 @@ export async function openTransactionModal(opts = {}) {
 }
 
 function getDefaultDueDate() {
-  const viewingMonth = store.getMonth()
-  const currentMonth = date.currentMonth()
-  if (viewingMonth === currentMonth) return date.today()
-  const [y, m] = viewingMonth.split('-').map(Number)
-  return new Date(y, m, 0).toISOString().split('T')[0]
+  return date.today()
 }
 
 function buildTransactionModal(tx, accounts, categories) {
@@ -533,7 +529,7 @@ function buildTransactionModal(tx, accounts, categories) {
           <div class="form-group">
             <label class="form-label required">Vencimento</label>
             <div style="display:flex;gap:6px">
-              <input id="txDate" class="form-control" type="date" value="${tx.due_date || getDefaultDueDate()}" required style="flex:2">
+              <input id="txDate" class="form-control" type="date" value="${tx.due_date || tx.date || getDefaultDueDate()}" required style="flex:2">
               <input id="txTime" class="form-control" type="time" value="${tx.time || ''}" placeholder="Hora" style="flex:1">
             </div>
           </div>

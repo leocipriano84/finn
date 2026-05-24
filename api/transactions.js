@@ -105,12 +105,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ updated: 0 })
     }
 
-    const { description, amount, type, category, date, notes, frequency, recurrence, installment_total, due_date } = req.body || {}
+    const { description, amount, type, category, date, notes, frequency, recurrence, installment_total, due_date, status, account_id, credit_card_id, category_id } = req.body || {}
     if (!description || !amount || !type) {
       return res.status(400).json({ error: 'Descrição, valor e tipo são obrigatórios' })
     }
 
-    const baseDate = date || due_date || new Date().toISOString().slice(0,10)
+    const baseDate = due_date || date || new Date().toISOString().slice(0,10)
+    const txStatus = status || 'pending'
     const nInstallments = Number(installment_total) || 1
     const freq = recurrence === 'installment' ? 'once'
       : recurrence === 'fixed_monthly' ? 'monthly'
@@ -124,10 +125,13 @@ export default async function handler(req, res) {
       for (let i = 0; i < nInstallments; i++) {
         const [y, mo, d] = baseDate.split('-').map(Number)
         const dt = new Date(y, mo - 1 + i, d)
+        const isoDate = dt.toISOString().slice(0,10)
         records.push({
           user_id: userId, description: `${description} (${i+1}/${nInstallments})`,
           amount: perInstallment, type, category: category || 'outros',
-          date: dt.toISOString().slice(0,10), notes: notes || null, frequency: 'once',
+          date: isoDate, due_date: isoDate, notes: notes || null, frequency: 'once',
+          status: txStatus, account_id: account_id || null, credit_card_id: credit_card_id || null,
+          category_id: category_id || null,
         })
       }
       const { data, error } = await supabase.from('transactions').insert(records).select()
@@ -137,8 +141,10 @@ export default async function handler(req, res) {
 
     const record = {
       user_id: userId, description, amount: Number(amount), type,
-      category: category || 'outros', date: baseDate,
-      notes: notes || null, frequency: freq,
+      category: category || 'outros', date: baseDate, due_date: baseDate,
+      notes: notes || null, frequency: freq, status: txStatus,
+      account_id: account_id || null, credit_card_id: credit_card_id || null,
+      category_id: category_id || null,
     }
     const { data, error } = await supabase.from('transactions').insert(record).select().single()
     if (error) return res.status(500).json({ error: error.message })
@@ -147,8 +153,8 @@ export default async function handler(req, res) {
 
   // PUT
   if (req.method === 'PUT' && id) {
-    const allowed = ['description','amount','type','category','date','notes','frequency']
-    const updates = { updated_at: new Date().toISOString() }
+    const allowed = ['description','amount','type','category','date','due_date','notes','frequency','status','account_id','credit_card_id','category_id','ignore_in_charts','ignore_in_budgets','ignore_in_totals']
+    const updates = {}
     for (const f of allowed) {
       if (req.body?.[f] !== undefined) updates[f] = req.body[f]
     }

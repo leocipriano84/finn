@@ -432,9 +432,10 @@ router.register('coach',        () => import('/js/pages/coach.js'))
 router.init(document.getElementById('pageContent'))
 
 // Função global para abrir modal de novo lançamento
-window.openNewTransaction = async (type = 'expense') => {
+window.openNewTransaction = async (typeOrOpts = 'expense') => {
+  const opts = typeof typeOrOpts === 'string' ? { type: typeOrOpts } : typeOrOpts
   const mod = await import('/js/pages/transactions.js')
-  mod.openTransactionModal?.({ type })
+  mod.openTransactionModal?.(opts)
 }
 
 // Voz — inicializa e exibe botão se suportado

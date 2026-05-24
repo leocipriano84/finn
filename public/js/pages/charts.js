@@ -148,7 +148,8 @@ function renderDonut(canvasId, data) {
     ctx.fillStyle = d.color || '#6b7280'; ctx.fill(); angle += slice
   })
   ctx.beginPath(); ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2)
-  ctx.fillStyle = '#0d0d14'; ctx.fill()
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-card').trim() || '#0d0d14'
+  ctx.fill()
 }
 
 function renderLineChart(canvasId, daily, color = '#00F5A0') {
