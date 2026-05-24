@@ -166,15 +166,21 @@ export default async function handler(req, res) {
 
   // DELETE
   if (req.method === 'DELETE' && id) {
-    const { data: snap } = await supabase.from('transactions').select('*').eq('id', id).eq('user_id', userId).single()
-    if (snap) {
-      await supabase.from('transaction_audit_log').insert({
-        user_id: userId, action: 'deleted', transaction_id: id, transaction_data: snap
-      }).catch(() => {})
+    try {
+      const { data: snap } = await supabase.from('transactions').select('*').eq('id', id).eq('user_id', userId).single()
+      if (snap) {
+        try {
+          await supabase.from('transaction_audit_log').insert({
+            user_id: userId, action: 'deleted', transaction_id: id, transaction_data: snap
+          })
+        } catch (_) {}
+      }
+      const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', userId)
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(200).json({ deleted: true })
+    } catch (err) {
+      return res.status(500).json({ error: err.message || 'Erro ao excluir' })
     }
-    const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', userId)
-    if (error) return res.status(500).json({ error: error.message })
-    return res.status(204).end()
   }
 
   return res.status(405).json({ error: 'Método não permitido' })

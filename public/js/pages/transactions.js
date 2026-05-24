@@ -451,7 +451,7 @@ export async function openTransactionModal(opts = {}) {
       ])
       store.set('accounts', accs)
       store.set('categories', cats)
-      rebuildModalSelects(overlay, accs, cats)
+      rebuildModalSelects(overlay, accs, cats, existing)
 
       // Selecionar categoria pelo hint de voz
       if (prefill?.category_hint) {
@@ -792,17 +792,22 @@ function attachModalEvents(overlay, existing) {
   })
 }
 
-function rebuildModalSelects(overlay, accounts, categories) {
+function rebuildModalSelects(overlay, accounts, categories, tx = null) {
   const accSel = overlay.querySelector('#txAccount')
   if (accSel) {
     accSel.innerHTML = '<option value="">Selecione...</option>' +
       accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')
+    if (tx?.account_id) accSel.value = tx.account_id
   }
   const catSel = overlay.querySelector('#txCategory')
   if (catSel) {
     const cats = categories.filter(c => c.type !== 'income' && !c.parent_id)
     catSel.innerHTML = '<option value="">Sem categoria</option>' +
       cats.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('')
+    if (tx?.category_id) {
+      catSel.value = tx.category_id
+      catSel.dispatchEvent(new Event('change'))
+    }
   }
 }
 
