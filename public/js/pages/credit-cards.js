@@ -57,6 +57,7 @@ function renderCards(el, cards) {
     w.querySelector('[data-card-edit]')?.addEventListener('click', () => openCardModal(w.dataset.cardId))
     w.querySelector('[data-card-pay]')?.addEventListener('click', () => openPaymentModal(w.dataset.cardId))
     w.querySelector('[data-card-new-tx]')?.addEventListener('click', () => window.openNewTransaction?.('card'))
+    w.querySelector('[data-card-delete]')?.addEventListener('click', () => deleteCard(w.dataset.cardId, w.dataset.cardName))
   })
 }
 
@@ -69,7 +70,7 @@ function cardWidget(card) {
   const invoiceStatus = statusMap[currentInvoice?.status || 'open']
 
   return `
-    <div class="card card-interactive" data-card-id="${card.id}">
+    <div class="card card-interactive" data-card-id="${card.id}" data-card-name="${card.name}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:10px;height:10px;border-radius:50%;background:${card.color}"></div>
@@ -78,7 +79,10 @@ function cardWidget(card) {
             <div style="font-size:var(--text-xs);color:var(--color-text-soft)">${card.flag?.toUpperCase() || 'CARTÃO'} ${card.bank_name ? '• ' + card.bank_name : ''}</div>
           </div>
         </div>
-        <button class="btn btn-icon btn-sm" data-card-edit>✏️</button>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-icon btn-sm" data-card-edit title="Editar">✏️</button>
+          <button class="btn btn-icon btn-sm" data-card-delete title="Excluir cartão" style="color:var(--color-red)">🗑️</button>
+        </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;margin-bottom:8px">
@@ -215,6 +219,16 @@ function openCardModal(id) {
       loadCards()
     } catch (err) { Toast.error(err.message); Loading.btn(e.target, false) }
   })
+}
+
+async function deleteCard(id, name) {
+  const ok = await Confirm.delete(name || 'este cartão')
+  if (!ok) return
+  try {
+    await endpoints.deleteCard(id)
+    Toast.success('Cartão removido')
+    loadCards()
+  } catch (e) { Toast.error(e.message) }
 }
 
 function openPaymentModal(cardId) {

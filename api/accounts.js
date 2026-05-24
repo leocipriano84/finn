@@ -112,6 +112,14 @@ export default async function handler(req, res) {
 
   // DELETE — arquivar/excluir
   if (req.method === 'DELETE' && id) {
+    const { data: linkedCards } = await supabase.from('credit_cards')
+      .select('id, name').eq('account_id', id).eq('archived', false)
+    if (linkedCards && linkedCards.length > 0) {
+      return res.status(400).json({
+        error: `Não é possível excluir esta conta pois ela está vinculada ao cartão "${linkedCards[0].name}". Desvincule o cartão primeiro.`
+      })
+    }
+
     const { count } = await supabase.from('transactions').select('id', { count: 'exact', head: true })
       .eq('account_id', id).eq('user_id', userId)
     if (count > 0) {

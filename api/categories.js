@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         const parentId = crypto.randomUUID()
         toInsert.push({ id: parentId, user_id: userId, name: cat.name, type: 'expense', icon: cat.icon, color: cat.color, is_default: true, sort_order: i })
         cat.subs.forEach((sub, j) => {
-          toInsert.push({ user_id: userId, name: sub, type: 'expense', icon: cat.icon, color: cat.color, is_default: true, parent_id: parentId, sort_order: j })
+          toInsert.push({ id: crypto.randomUUID(), user_id: userId, name: sub, type: 'expense', icon: cat.icon, color: cat.color, is_default: true, parent_id: parentId, sort_order: j })
         })
       }
 
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         const parentId = crypto.randomUUID()
         toInsert.push({ id: parentId, user_id: userId, name: cat.name, type: 'income', icon: cat.icon, color: cat.color, is_default: true, sort_order: i })
         cat.subs.forEach((sub, j) => {
-          toInsert.push({ user_id: userId, name: sub, type: 'income', icon: cat.icon, color: cat.color, is_default: true, parent_id: parentId, sort_order: j })
+          toInsert.push({ id: crypto.randomUUID(), user_id: userId, name: sub, type: 'income', icon: cat.icon, color: cat.color, is_default: true, parent_id: parentId, sort_order: j })
         })
       }
 
@@ -83,6 +83,7 @@ export default async function handler(req, res) {
     if (!name || !type) return res.status(400).json({ error: 'Nome e tipo são obrigatórios' })
 
     const { data, error } = await supabase.from('categories').insert({
+      id: crypto.randomUUID(),
       user_id: userId, name: String(name).substring(0,80), type,
       icon: icon || '📦', color: color || '#6b7280',
       parent_id: parent_id || null, sort_order: sort_order || 0

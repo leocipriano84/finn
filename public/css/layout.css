@@ -28,7 +28,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-5) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
   flex-shrink: 0;
 }
 .sidebar-logo-mark {
@@ -67,7 +67,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-muted);
+  color: var(--color-sidebar-text-soft, #a0a0b0);
   margin-top: var(--space-2);
 }
 .sidebar-section:first-child { margin-top: 0; }
@@ -80,15 +80,15 @@
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--color-text);
+  color: var(--color-sidebar-text, #f0f0f5);
   cursor: pointer;
   transition: all var(--transition-fast);
   white-space: nowrap;
   overflow: hidden;
 }
 .sidebar-item:hover {
-  background: var(--color-card-hover);
-  color: var(--color-text);
+  background: rgba(255,255,255,0.08);
+  color: var(--color-sidebar-text, #f0f0f5);
 }
 .sidebar-item.active {
   background: var(--color-green-dim);
@@ -115,12 +115,12 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid rgba(255,255,255,0.1);
   flex-shrink: 0;
   cursor: pointer;
   transition: background var(--transition-fast);
 }
-.sidebar-user:hover { background: var(--color-card-hover); }
+.sidebar-user:hover { background: rgba(255,255,255,0.08); }
 .sidebar-avatar {
   width: 34px;
   height: 34px;
@@ -136,7 +136,7 @@
 }
 .sidebar-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .sidebar-user-info { flex: 1; min-width: 0; }
-.sidebar-user-name { font-size: var(--text-sm); font-weight: 600; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-user-name { font-size: var(--text-sm); font-weight: 600; color: var(--color-sidebar-text, #f0f0f5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-user-plan { font-size: var(--text-xs); color: var(--color-text-soft); }
 
 /* ================================================

@@ -111,7 +111,7 @@ export default async function handler(req, res) {
   if (action === 'summary') {
     const [txRes, budgetRes] = await Promise.all([
       supabase.from('transactions').select('*').eq('user_id', userId).gte('date', start).lte('date', end),
-      supabase.from('budgets').select('*').eq('user_id', userId).eq('month_year', currentMonth),
+      supabase.from('budgets').select('*').eq('user_id', userId).eq('month', currentMonth),
     ])
 
     const txs = txRes.data || []

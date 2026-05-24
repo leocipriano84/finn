@@ -22,6 +22,8 @@
   /* Modal / Sidebar */
   --color-modal-bg: #0d0d14;
   --color-sidebar-bg: #080810;
+  --color-sidebar-text: #f0f0f5;
+  --color-sidebar-text-soft: #a0a0b0;
   --color-header-bg: #050508;
 
   /* Misc */
@@ -55,7 +57,9 @@
   --color-input-border: #d1d5db;
 
   --color-modal-bg: #ffffff;
-  --color-sidebar-bg: #ffffff;
+  --color-sidebar-bg: #1a1a2a;
+  --color-sidebar-text: #f0f0f5;
+  --color-sidebar-text-soft: #a0a0b0;
   --color-header-bg: #ffffff;
 
   --color-divider: #e5e5ea;
@@ -85,7 +89,9 @@
     --color-input-bg: #ffffff;
     --color-input-border: #d1d5db;
     --color-modal-bg: #ffffff;
-    --color-sidebar-bg: #ffffff;
+    --color-sidebar-bg: #1a1a2a;
+    --color-sidebar-text: #f0f0f5;
+    --color-sidebar-text-soft: #a0a0b0;
     --color-header-bg: #ffffff;
     --color-divider: #e5e5ea;
     --color-skeleton: #e5e5ea;
