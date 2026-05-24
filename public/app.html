@@ -431,6 +431,22 @@ router.register('coach',        () => import('/js/pages/coach.js'))
 // Inicia router
 router.init(document.getElementById('pageContent'))
 
+// Gerar transações recorrentes do mês atual (uma vez por mês)
+;(async () => {
+  try {
+    const lastGen = localStorage.getItem('finn_recurring_generated')
+    const curMonth = new Date().toISOString().slice(0,7)
+    if (lastGen !== curMonth) {
+      const token = session.access_token
+      await fetch('/api/transactions?action=generate-recurring', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+      localStorage.setItem('finn_recurring_generated', curMonth)
+    }
+  } catch {}
+})()
+
 // Função global para abrir modal de novo lançamento
 window.openNewTransaction = async (typeOrOpts = 'expense') => {
   const opts = typeof typeOrOpts === 'string' ? { type: typeOrOpts } : typeOrOpts

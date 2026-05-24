@@ -4,6 +4,7 @@ import { fmt } from '../core/utils.js'
 import { Toast, Confirm, Loading } from '../core/notifications.js'
 
 let unsubMonth = null
+let budgetsCache = []
 
 export async function render(el) {
   el.innerHTML = `
@@ -28,6 +29,7 @@ async function loadBudgets() {
   body.innerHTML = Array(3).fill('<div class="skeleton" style="height:100px;border-radius:16px;margin-bottom:12px"></div>').join('')
   try {
     const budgets = await endpoints.budgetProgress({ month: store.getMonth() })
+    budgetsCache = budgets
     if (countEl) countEl.textContent = `${budgets.length} orçamento${budgets.length !== 1 ? 's' : ''} em ${fmt.monthYear(...store.getMonth().split('-').map(Number))}`
     renderBudgets(body, budgets)
   } catch (e) {
@@ -93,7 +95,7 @@ function renderBudgets(el, budgets) {
 }
 
 function openBudgetModal(id) {
-  const budgets = []
+  const existing = id ? budgetsCache.find(b => b.id === id) : null
   const categories = store.get('categories') || []
   const expCats = categories.filter(c => c.type === 'expense' || c.type === 'both')
 
@@ -128,6 +130,27 @@ function openBudgetModal(id) {
   `
   document.body.appendChild(overlay)
   requestAnimationFrame(() => overlay.classList.add('open'))
+
+  // Pré-preencher ao editar
+  if (existing) {
+    const nameEl = overlay.querySelector('#bName')
+    const amtEl  = overlay.querySelector('#bAmount')
+    const catEl  = overlay.querySelector('#bCategory')
+    const monEl  = overlay.querySelector('#bMonth')
+    const altEl  = overlay.querySelector('#bAlert')
+    const altLbl = overlay.querySelector('#bAlertLabel')
+    if (nameEl) nameEl.value = existing.name || ''
+    if (amtEl)  amtEl.value  = existing.limit_amount ?? existing.amount ?? 0
+    if (catEl)  catEl.value  = existing.category_id || ''
+    if (monEl)  monEl.value  = existing.month_year || existing.month || store.getMonth()
+    if (altEl) {
+      const pct = existing.alert_at_percent || 80
+      altEl.value = pct
+      if (altLbl) altLbl.textContent = pct + '%'
+    }
+    const titleEl = overlay.querySelector('.modal-title')
+    if (titleEl) titleEl.textContent = 'Editar orçamento'
+  }
 
   const close = () => { overlay.classList.remove('open'); setTimeout(() => overlay.remove(), 300) }
   overlay.querySelector('#bModalClose')?.addEventListener('click', close)

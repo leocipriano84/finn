@@ -122,6 +122,41 @@ export default async function handler(req, res) {
       return res.status(200).json({ updated: 0 })
     }
 
+    if (action === 'generate-recurring') {
+      const today = new Date()
+      const monthStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`
+      const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`
+
+      const { data: templates } = await supabase.from('transactions').select('*')
+        .eq('user_id', userId)
+        .neq('recurrence', 'none')
+        .not('recurrence', 'is', null)
+        .neq('recurrence', 'installment')
+        .like('date', `${prevMonthStr}%`)
+        .limit(100)
+
+      let created = 0
+      for (const tx of templates || []) {
+        const { data: existing } = await supabase.from('transactions').select('id')
+          .eq('user_id', userId).eq('description', tx.description)
+          .eq('amount', tx.amount).eq('type', tx.type).like('date', `${monthStr}%`).limit(1)
+        if (existing?.length) continue
+
+        const day = tx.date.split('-')[2]
+        const newDate = `${monthStr}-${day}`
+        const { error } = await supabase.from('transactions').insert({
+          user_id: userId, type: tx.type, amount: tx.amount, description: tx.description,
+          date: newDate, due_date: newDate, status: 'pending',
+          recurrence: tx.recurrence, frequency: tx.frequency || 'once',
+          category_id: tx.category_id || null, account_id: tx.account_id || null,
+          credit_card_id: tx.credit_card_id || null, notes: tx.notes || null,
+        })
+        if (!error) created++
+      }
+      return res.status(200).json({ success: true, created })
+    }
+
     console.log('[transactions] body recebido:', JSON.stringify({
       type: req.body?.type,
       recurrence: req.body?.recurrence,
@@ -129,6 +164,8 @@ export default async function handler(req, res) {
       credit_card_id: req.body?.credit_card_id,
       account_selection: req.body?.account_selection,
       category_id: req.body?.category_id,
+      category_id_type: typeof req.body?.category_id,
+      category_id_empty: req.body?.category_id === '',
       status: req.body?.status,
     }))
 
@@ -184,6 +221,19 @@ export default async function handler(req, res) {
       credit_card_id,
       category_id: category_id || null,
     }
+
+    // OFX dedup: verificar se fitid já foi importado (só se coluna existir)
+    const ofxFitid = req.body?.ofx_fitid || null
+    if (ofxFitid) {
+      try {
+        const { data: dup } = await supabase.from('transactions')
+          .select('id').eq('ofx_fitid', ofxFitid).eq('user_id', userId).maybeSingle()
+        if (dup) return res.status(409).json({ error: 'Transação OFX já importada', skipped: true })
+        record.ofx_fitid = ofxFitid
+        record.ofx_imported_at = new Date().toISOString()
+      } catch { /* coluna ofx_fitid ainda não existe */ }
+    }
+
     const { data, error } = await supabase.from('transactions').insert(record).select().single()
     if (error) return res.status(500).json({ error: error.message })
     return res.status(201).json(data)

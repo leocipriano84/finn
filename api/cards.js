@@ -59,9 +59,13 @@ export default async function handler(req, res) {
             .select('*').eq('credit_card_id', card.id).eq('reference_month', m).single()
 
           const dates = calcInvoiceDates(card, m)
+          const [my, mm] = m.split('-').map(Number)
+          const mStart = `${my}-${String(mm).padStart(2,'0')}-01`
+          const mEnd = new Date(my, mm, 0).toISOString().slice(0,10)
           const { data: txs } = await supabase.from('transactions')
             .select('amount, status')
-            .eq('user_id', userId).eq('credit_card_id', card.id).eq('card_invoice_month', m)
+            .eq('user_id', userId).eq('credit_card_id', card.id)
+            .gte('date', mStart).lte('date', mEnd)
 
           const total = (txs || []).reduce((s, t) => s + Number(t.amount), 0)
           const today = new Date().toISOString().slice(0,10)

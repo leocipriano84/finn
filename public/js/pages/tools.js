@@ -190,6 +190,7 @@ function parseOFX(text) {
     const dtPosted = get('DTPOSTED')
     const amtRaw = parseFloat(get('TRNAMT').replace(',', '.'))
     const memo = get('MEMO') || get('NAME') || 'Sem descrição'
+    const fitid = get('FITID') || null
 
     if (!dtPosted || isNaN(amtRaw)) continue
 
@@ -199,7 +200,7 @@ function parseOFX(text) {
     const date = `${year}-${month}-${day}`
 
     const type = amtRaw >= 0 ? 'income' : 'expense'
-    txs.push({ date, description: memo, amount: Math.abs(amtRaw), type, trnType })
+    txs.push({ date, description: memo, amount: Math.abs(amtRaw), type, trnType, fitid })
   }
   return txs
 }
@@ -239,20 +240,26 @@ function showOFXPreview(txs) {
   preview.querySelector('#ofxCancelBtn')?.addEventListener('click', () => { preview.style.display = 'none' })
   preview.querySelector('#ofxImportBtn')?.addEventListener('click', async (e) => {
     Loading.btn(e.target, true)
-    try {
-      let imported = 0
-      for (const t of txs) {
-        try {
-          await endpoints.createTx({ description: t.description, amount: t.amount, type: t.type, due_date: t.date, status: 'confirmed' })
-          imported++
-        } catch {}
+    let imported = 0, skipped = 0, errors = 0
+    for (const t of txs) {
+      try {
+        await endpoints.createTx({
+          description: t.description, amount: t.amount, type: t.type,
+          due_date: t.date, status: 'confirmed',
+          ...(t.fitid ? { ofx_fitid: t.fitid } : {}),
+        })
+        imported++
+      } catch (err) {
+        if (err?.status === 409 || err?.message?.includes('já importada')) skipped++
+        else errors++
       }
-      Toast.success(`${imported} lançamentos importados com sucesso`)
-      preview.style.display = 'none'
-    } catch (err) {
-      Toast.error(err.message)
-      Loading.btn(e.target, false)
     }
+    const msg = skipped > 0
+      ? `${imported} importados · ${skipped} já existiam`
+      : `${imported} lançamentos importados`
+    if (errors > 0) Toast.error(`${msg} · ${errors} com erro`)
+    else Toast.success(msg)
+    preview.style.display = 'none'
   })
 }
 
