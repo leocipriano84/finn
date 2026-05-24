@@ -111,14 +111,18 @@ export default async function handler(req, res) {
   if (action === 'summary') {
     const [txRes, budgetRes] = await Promise.all([
       supabase.from('transactions').select('*').eq('user_id', userId).gte('date', start).lte('date', end),
-      supabase.from('budgets').select('*').eq('user_id', userId).eq('month', currentMonth),
+      supabase.from('budgets').select('*').eq('user_id', userId).eq('month_year', currentMonth),
     ])
 
     const txs = txRes.data || []
     const budgets = budgetRes.data || []
 
-    const income_confirmed  = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0)
-    const expense_confirmed = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0)
+    const today = new Date().toISOString().slice(0,10)
+    const income_confirmed  = txs.filter(t => t.type === 'income'  && t.status !== 'pending').reduce((s,t) => s + Number(t.amount), 0)
+    const income_pending    = txs.filter(t => t.type === 'income'  && t.status === 'pending').reduce((s,t) => s + Number(t.amount), 0)
+    const expense_confirmed = txs.filter(t => t.type === 'expense' && t.status !== 'pending').reduce((s,t) => s + Number(t.amount), 0)
+    const expense_pending   = txs.filter(t => t.type === 'expense' && t.status === 'pending').reduce((s,t) => s + Number(t.amount), 0)
+    const overdue = txs.filter(t => t.type === 'expense' && t.status === 'pending' && (t.due_date || t.date) < today)
 
     const catMap = {}
     txs.filter(t => t.type === 'expense').forEach(t => {
@@ -131,15 +135,17 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       overview: {
-        income:  { confirmed: income_confirmed,  pending: 0 },
-        expense: { confirmed: expense_confirmed, pending: 0 },
+        income:  { confirmed: income_confirmed,  pending: income_pending  },
+        expense: { confirmed: expense_confirmed, pending: expense_pending },
         balance: income_confirmed - expense_confirmed,
-        forecast: income_confirmed - expense_confirmed,
-        card_total: 0, overdue_count: 0, overdue_amount: 0,
+        forecast: (income_confirmed + income_pending) - (expense_confirmed + expense_pending),
+        card_total: 0,
+        overdue_count: overdue.length,
+        overdue_amount: overdue.reduce((s,t) => s + Number(t.amount), 0),
       },
       expense_by_category: expensesByCat,
-      expense_recurrence: { fixed: 0, installment: 0, variable: expense_confirmed },
-      expense_status: { confirmed: expense_confirmed, overdue: 0, upcoming: 0 },
+      expense_recurrence: { fixed: 0, installment: 0, variable: expense_confirmed + expense_pending },
+      expense_status: { confirmed: expense_confirmed, overdue: overdue.length, upcoming: expense_pending },
       budgets,
       month: currentMonth,
     })

@@ -87,6 +87,60 @@ Responda em português, seja conciso (máx 3 parágrafos), prático e amigável.
     }
   }
 
+  if (req.method === 'POST' && action === 'parse-invoice') {
+    const { pdfText } = body
+    if (!pdfText) return res.status(400).json({ error: 'pdfText obrigatório' })
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ transactions: [], mock: true })
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: `Extraia todas as transações desta fatura de cartão de crédito.\nRetorne SOMENTE JSON válido no formato:\n{"transactions":[{"date":"YYYY-MM-DD","description":"...","amount":0.00,"category_hint":"..."}]}\n\nFatura:\n${pdfText.slice(0, 8000)}` }]
+      })
+      const match = response.content[0].text.match(/\{[\s\S]*\}/)
+      if (!match) return res.status(200).json({ transactions: [] })
+      return res.status(200).json(JSON.parse(match[0]))
+    } catch (e) { return res.status(500).json({ error: e.message }) }
+  }
+
+  if (req.method === 'POST' && action === 'parse-receipt') {
+    const { pdfText } = body
+    if (!pdfText) return res.status(400).json({ error: 'pdfText obrigatório' })
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ transaction: null, mock: true })
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: `Extraia os dados principais deste comprovante/nota fiscal.\nRetorne SOMENTE JSON válido no formato:\n{"transaction":{"date":"YYYY-MM-DD","description":"...","amount":0.00,"type":"expense"}}\n\nComprovante:\n${pdfText.slice(0, 4000)}` }]
+      })
+      const match = response.content[0].text.match(/\{[\s\S]*\}/)
+      if (!match) return res.status(200).json({ transaction: null })
+      return res.status(200).json(JSON.parse(match[0]))
+    } catch (e) { return res.status(500).json({ error: e.message }) }
+  }
+
+  if (req.method === 'POST' && action === 'parse-receipt-image') {
+    const { imageBase64, mediaType } = body
+    if (!imageBase64 || !mediaType) return res.status(400).json({ error: 'imageBase64 e mediaType obrigatórios' })
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ transaction: null, mock: true })
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+          { type: 'text', text: 'Extraia os dados principais deste comprovante/nota fiscal.\nRetorne SOMENTE JSON válido no formato:\n{"transaction":{"date":"YYYY-MM-DD","description":"...","amount":0.00,"type":"expense"}}' }
+        ]}]
+      })
+      const match = response.content[0].text.match(/\{[\s\S]*\}/)
+      if (!match) return res.status(200).json({ transaction: null })
+      return res.status(200).json(JSON.parse(match[0]))
+    } catch (e) { return res.status(500).json({ error: e.message }) }
+  }
+
   if (req.method === 'GET') {
     if (action === 'profile') {
       const ctx = await getFinancialContext(userId)

@@ -90,6 +90,24 @@ export default async function handler(req, res) {
       return res.status(200).json({ unlocked: (all || []).map(a => a.achievement_id) })
     }
 
+    if (action === 'clear-data') {
+      const tables = ['transactions', 'accounts', 'credit_cards', 'categories', 'goals', 'budgets', 'coach_messages', 'card_invoices']
+      for (const table of tables) {
+        await supabase.from(table).delete().eq('user_id', userId).catch(() => {})
+      }
+      return res.status(200).json({ ok: true })
+    }
+
+    if (action === 'delete-account') {
+      const tables = ['transactions', 'accounts', 'credit_cards', 'categories', 'goals', 'budgets', 'coach_messages', 'card_invoices']
+      for (const table of tables) {
+        await supabase.from(table).delete().eq('user_id', userId).catch(() => {})
+      }
+      await supabase.from('profiles').delete().eq('id', userId).catch(() => {})
+      await supabase.auth.admin.deleteUser(userId).catch(() => {})
+      return res.status(200).json({ ok: true })
+    }
+
     if (action === 'restore-transaction') {
       const { audit_id } = req.body || {}
       if (!audit_id) return res.status(400).json({ error: 'audit_id obrigatório' })

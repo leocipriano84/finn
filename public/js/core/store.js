@@ -6,6 +6,7 @@ const state = {
   session: null,
   preferences: null,
   currentMonth: (() => {
+    try { const s = localStorage.getItem('finn_month'); if (s && /^\d{4}-\d{2}$/.test(s)) return s } catch {}
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
   })(),
@@ -49,7 +50,7 @@ export const store = {
   // Atalhos comuns
   getUser()   { return state.user },
   getMonth()  { return state.currentMonth },
-  setMonth(m) { return store.set('currentMonth', m) },
+  setMonth(m) { try { localStorage.setItem('finn_month', m) } catch {}; return store.set('currentMonth', m) },
   getPage()   { return state.page },
   setPage(p)  { return store.set('page', p) },
 }

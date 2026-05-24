@@ -45,22 +45,26 @@ export default async function handler(req, res) {
       const end = new Date(Number(y), Number(m), 0).toISOString().slice(0,10)
 
       const { data, error } = await supabase.from('transactions')
-        .select('type, amount, date')
+        .select('type, amount, date, status')
         .eq('user_id', userId).gte('date', start).lte('date', end)
       if (error) return res.status(500).json({ error: error.message })
 
       const txs = data || []
-      const income   = txs.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0)
-      const expense  = txs.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0)
+      const income_confirmed  = txs.filter(t => t.type === 'income'  && t.status !== 'pending').reduce((s,t) => s + Number(t.amount), 0)
+      const income_pending    = txs.filter(t => t.type === 'income'  && t.status === 'pending').reduce((s,t) => s + Number(t.amount), 0)
+      const expense_confirmed = txs.filter(t => t.type === 'expense' && t.status !== 'pending').reduce((s,t) => s + Number(t.amount), 0)
+      const expense_pending   = txs.filter(t => t.type === 'expense' && t.status === 'pending').reduce((s,t) => s + Number(t.amount), 0)
       const today = new Date().toISOString().slice(0,10)
-      const overdue  = txs.filter(t => t.type === 'expense' && t.date < today)
+      const overdue = txs.filter(t => t.type === 'expense' && t.status === 'pending' && t.date < today)
 
       return res.status(200).json({
-        income: { confirmed: income, pending: 0, total: income },
-        expense: { confirmed: expense, pending: 0, total: expense },
-        card_total: 0, overdue_count: 0, overdue_amount: 0,
-        balance: income - expense,
-        forecast: income - expense,
+        income:  { confirmed: income_confirmed,  pending: income_pending,  total: income_confirmed  + income_pending  },
+        expense: { confirmed: expense_confirmed, pending: expense_pending, total: expense_confirmed + expense_pending },
+        card_total: 0,
+        overdue_count: overdue.length,
+        overdue_amount: overdue.reduce((s,t) => s + Number(t.amount), 0),
+        balance: income_confirmed - expense_confirmed,
+        forecast: (income_confirmed + income_pending) - (expense_confirmed + expense_pending),
       })
     }
 
@@ -191,6 +195,7 @@ export default async function handler(req, res) {
       : frequency || 'once'
 
     if (recurrence === 'installment' && nInstallments > 1) {
+      const groupId = crypto.randomUUID()
       const perInstallment = +(Number(amount) / nInstallments).toFixed(2)
       const records = []
       for (let i = 0; i < nInstallments; i++) {
@@ -205,6 +210,7 @@ export default async function handler(req, res) {
           status: txStatus, account_id, credit_card_id,
           category_id: category_id || null,
           installment_current: i + 1, installment_total: nInstallments,
+          recurrence_group_id: groupId,
         })
       }
       const { data, error } = await supabase.from('transactions').insert(records).select()

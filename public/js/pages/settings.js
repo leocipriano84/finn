@@ -183,6 +183,24 @@ async function loadSettings() {
       </div>
     </section>
 
+    <!-- Zona de perigo -->
+    <section style="margin-bottom:32px">
+      <h2 style="font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--color-red)">Zona de perigo</h2>
+      <p style="font-size:var(--text-sm);color:var(--color-text-soft);margin-bottom:16px">Ações irreversíveis. Tenha certeza antes de continuar.</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="padding:16px;border:1px solid var(--color-border);border-radius:var(--radius-md)">
+          <div style="font-weight:600;font-size:var(--text-sm);margin-bottom:4px">Limpar todos os dados</div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-soft);margin-bottom:12px">Remove todas as transações, contas, cartões, categorias, orçamentos e metas. Sua conta permanece ativa.</div>
+          <button class="btn btn-danger btn-sm" id="clearDataBtn">🗑️ Limpar todos os dados</button>
+        </div>
+        <div style="padding:16px;border:1px solid var(--color-red);border-radius:var(--radius-md);background:var(--color-red-dim)">
+          <div style="font-weight:600;font-size:var(--text-sm);margin-bottom:4px;color:var(--color-red)">Apagar minha conta</div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-soft);margin-bottom:12px">Exclui permanentemente sua conta e todos os dados. Esta ação não pode ser desfeita.</div>
+          <button class="btn btn-danger btn-sm" id="deleteAccountBtn">⚠️ Apagar minha conta</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Sobre -->
     <section>
       <h2 style="font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--color-border)">Sobre</h2>
@@ -298,6 +316,32 @@ function attachEvents(body, prefs) {
   // Exportar CSV (em breve)
   body.querySelector('#exportCsvBtn')?.addEventListener('click', () => Toast.info('Exportação CSV em breve'))
   body.querySelector('#exportOfxBtn')?.addEventListener('click', () => Toast.info('Exportação OFX em breve'))
+
+  // Limpar dados
+  body.querySelector('#clearDataBtn')?.addEventListener('click', async (e) => {
+    const confirmed = window.confirm('Tem certeza? Isso apagará TODAS as suas transações, contas, cartões, categorias, orçamentos e metas. Sua conta de acesso permanece ativa.')
+    if (!confirmed) return
+    const confirmed2 = window.confirm('Confirme novamente: todos os dados financeiros serão excluídos permanentemente.')
+    if (!confirmed2) return
+    Loading.btn(e.target, true)
+    try {
+      await endpoints.clearData()
+      Toast.success('Todos os dados foram removidos')
+    } catch (err) { Toast.error(err.message); Loading.btn(e.target, false) }
+  })
+
+  // Apagar conta
+  body.querySelector('#deleteAccountBtn')?.addEventListener('click', async (e) => {
+    const input = window.prompt('Para confirmar, digite "APAGAR MINHA CONTA" (em maiúsculas):')
+    if (input !== 'APAGAR MINHA CONTA') { if (input !== null) Toast.error('Confirmação inválida'); return }
+    Loading.btn(e.target, true)
+    try {
+      await endpoints.deleteMyAccount()
+      Toast.success('Conta excluída')
+      await auth.signOut()
+      window.location.href = '/login.html'
+    } catch (err) { Toast.error(err.message); Loading.btn(e.target, false) }
+  })
 
   // Logout
   body.querySelector('#logoutBtn')?.addEventListener('click', async () => {

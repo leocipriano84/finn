@@ -80,6 +80,38 @@ export async function render(el) {
         </div>
       </section>
 
+      <!-- Importação Inteligente (PDF/Imagem) -->
+      <section style="margin-bottom:32px">
+        <h2 style="font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--color-border)">Importação Inteligente</h2>
+        <div class="card">
+          <div class="card-body" style="padding:var(--space-4)">
+            <p style="font-size:var(--text-sm);color:var(--color-text-soft);margin-bottom:16px">Importe faturas de cartão ou comprovantes em PDF/imagem. O AI extrai os dados automaticamente.</p>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight:600">💳 Fatura do cartão (PDF)</label>
+              <div id="invoiceDropzone" style="border:2px dashed var(--color-border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s">
+                <div style="font-size:28px;margin-bottom:8px">📄</div>
+                <div style="font-size:var(--text-sm);font-weight:600">Arraste a fatura PDF aqui</div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-soft);margin-top:4px">ou clique para selecionar</div>
+                <input id="invoiceFile" type="file" accept=".pdf" style="display:none">
+              </div>
+              <div id="invoicePreview" style="display:none;margin-top:12px"></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-weight:600">🧾 Comprovante / Nota fiscal</label>
+              <div id="receiptDropzone" style="border:2px dashed var(--color-border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color 0.2s">
+                <div style="font-size:28px;margin-bottom:8px">🧾</div>
+                <div style="font-size:var(--text-sm);font-weight:600">Arraste o PDF ou imagem</div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-soft);margin-top:4px">PDF, JPG, PNG, WEBP aceitos</div>
+                <input id="receiptFile" type="file" accept=".pdf,image/jpeg,image/png,image/webp,image/gif" style="display:none">
+              </div>
+              <div id="receiptPreview" style="display:none;margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Calculadora de Investimentos -->
       <section style="margin-bottom:32px">
         <h2 style="font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--color-border)">Calculadora de Investimentos</h2>
@@ -139,6 +171,7 @@ export async function render(el) {
   attachOFXEvents(el)
   attachCSVEvents(el)
   attachSMSEvents(el)
+  attachPDFEvents(el)
   attachCalcEvents(el)
   loadAuditLog()
   loadCoachHistory()
@@ -669,6 +702,186 @@ async function loadCoachHistory() {
   } catch {
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💬</div><p class="empty-state-msg">Sem histórico disponível</p></div>`
   }
+}
+
+// ---------- PDF Import ----------
+function attachPDFEvents(el) {
+  const setupDropzone = (dropzoneId, fileInputId, handler) => {
+    const dropzone = el.querySelector(`#${dropzoneId}`)
+    const fileInput = el.querySelector(`#${fileInputId}`)
+    dropzone?.addEventListener('click', () => fileInput?.click())
+    dropzone?.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = 'var(--color-green)' })
+    dropzone?.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--color-border)' })
+    dropzone?.addEventListener('drop', e => {
+      e.preventDefault()
+      dropzone.style.borderColor = 'var(--color-border)'
+      const file = e.dataTransfer?.files[0]
+      if (file) handler(file)
+    })
+    fileInput?.addEventListener('change', () => { if (fileInput.files[0]) handler(fileInput.files[0]) })
+  }
+
+  setupDropzone('invoiceDropzone', 'invoiceFile', importInvoicePDF)
+  setupDropzone('receiptDropzone', 'receiptFile', importReceiptFile)
+}
+
+async function loadPDFjs() {
+  if (window.pdfjsLib) return window.pdfjsLib
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script')
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+    s.onload = resolve; s.onerror = reject
+    document.head.appendChild(s)
+  })
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  return window.pdfjsLib
+}
+
+async function extractPDFText(file) {
+  const pdfjs = await loadPDFjs()
+  const ab = await file.arrayBuffer()
+  const pdf = await pdfjs.getDocument({ data: ab }).promise
+  let text = ''
+  for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
+    const page = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    text += content.items.map(it => it.str).join(' ') + '\n'
+  }
+  return text
+}
+
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = e => resolve(e.target.result.split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+function parseInvoiceTextManually(text) {
+  const txs = []
+  const lines = text.split(/\n|\r/).map(l => l.trim()).filter(Boolean)
+  const amtRe = /R?\$?\s*([\d]{1,3}(?:[.\s]?\d{3})*[,]\d{2})/
+  const dateRe = /(\d{2})[\/\-](\d{2})[\/\-]?(\d{2,4})?/
+  for (const line of lines) {
+    const amtMatch = line.match(amtRe)
+    const dateMatch = line.match(dateRe)
+    if (!amtMatch || !dateMatch) continue
+    const raw = amtMatch[1].replace(/\./g, '').replace(',', '.')
+    const amount = parseFloat(raw)
+    if (!amount || amount <= 0 || amount > 100000) continue
+    const d = dateMatch[1], m = dateMatch[2]
+    let y = dateMatch[3] || new Date().getFullYear().toString()
+    if (y.length === 2) y = '20' + y
+    const date = `${y}-${m}-${d}`
+    const desc = line.replace(amtRe, '').replace(dateRe, '').replace(/[R$\s]+/g, ' ').trim().slice(0, 60) || 'Fatura importada'
+    txs.push({ date, description: desc, amount, type: 'expense' })
+  }
+  return txs.slice(0, 100)
+}
+
+async function importInvoicePDF(file) {
+  const previewEl = document.getElementById('invoicePreview')
+  if (!previewEl) return
+  previewEl.style.display = 'block'
+  previewEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--color-card-hover);border-radius:8px;font-size:var(--text-sm)"><span style="animation:spin 1s linear infinite;display:inline-block">⏳</span> Analisando fatura...</div>`
+
+  try {
+    const text = await extractPDFText(file)
+    let txs = []
+    try {
+      const resp = await endpoints.coachParseInvoice(text)
+      if (!resp.mock) txs = resp.transactions || []
+    } catch {}
+    if (!txs.length) txs = parseInvoiceTextManually(text)
+
+    if (!txs.length) {
+      previewEl.innerHTML = `<div style="padding:12px;background:var(--color-red-dim);border-radius:8px;font-size:var(--text-sm)">⚠️ Nenhuma transação encontrada na fatura. Verifique se o PDF é legível.</div>`
+      return
+    }
+    showPDFImportPreview(txs, 'invoicePreview')
+  } catch (e) {
+    previewEl.innerHTML = `<div style="padding:12px;background:var(--color-red-dim);border-radius:8px;font-size:var(--text-sm)">⚠️ Erro ao processar: ${escHtml(e.message)}</div>`
+  }
+}
+
+async function importReceiptFile(file) {
+  const previewEl = document.getElementById('receiptPreview')
+  if (!previewEl) return
+  previewEl.style.display = 'block'
+  previewEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--color-card-hover);border-radius:8px;font-size:var(--text-sm)"><span style="animation:spin 1s linear infinite;display:inline-block">⏳</span> Analisando comprovante...</div>`
+
+  try {
+    let tx = null
+    if (file.type === 'application/pdf') {
+      const text = await extractPDFText(file)
+      try {
+        const resp = await endpoints.coachParseReceipt(text)
+        if (!resp.mock) tx = resp.transaction
+      } catch {}
+    } else if (file.type.startsWith('image/')) {
+      try {
+        const base64 = await fileToBase64(file)
+        const resp = await endpoints.coachParseReceiptImage(base64, file.type)
+        if (!resp.mock) tx = resp.transaction
+      } catch {}
+    }
+
+    if (!tx) {
+      previewEl.innerHTML = `<div style="padding:12px;background:var(--color-red-dim);border-radius:8px;font-size:var(--text-sm)">⚠️ Não foi possível extrair os dados. Verifique se o arquivo é legível e se o Coach IA está configurado.</div>`
+      return
+    }
+    showPDFImportPreview([tx], 'receiptPreview')
+  } catch (e) {
+    previewEl.innerHTML = `<div style="padding:12px;background:var(--color-red-dim);border-radius:8px;font-size:var(--text-sm)">⚠️ Erro ao processar: ${escHtml(e.message)}</div>`
+  }
+}
+
+function showPDFImportPreview(txs, previewId) {
+  const previewEl = document.getElementById(previewId)
+  if (!previewEl) return
+
+  previewEl.style.display = 'block'
+  previewEl.innerHTML = `
+    <div style="font-size:var(--text-sm);font-weight:600;margin-bottom:8px">${txs.length} transação${txs.length !== 1 ? 'ões' : ''} encontrada${txs.length !== 1 ? 's' : ''}</div>
+    <div style="max-height:240px;overflow-y:auto;border:1px solid var(--color-border);border-radius:8px">
+      ${txs.slice(0, 30).map((t, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--color-border);font-size:var(--text-xs)">
+          <div style="flex:1;min-width:0;margin-right:8px">
+            <div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml((t.description || '').slice(0, 50))}</div>
+            <div style="color:var(--color-text-soft)">${t.date || ''}${t.category_hint ? ` · ${escHtml(t.category_hint)}` : ''}</div>
+          </div>
+          <div class="${(t.type || 'expense') === 'income' ? 'value-positive' : 'value-negative'}" style="font-family:var(--font-mono);font-weight:600;flex-shrink:0">
+            ${(t.type || 'expense') === 'income' ? '+' : '-'}${fmt.currency(t.amount)}
+          </div>
+        </div>
+      `).join('')}
+      ${txs.length > 30 ? `<div style="padding:8px 12px;font-size:var(--text-xs);color:var(--color-text-soft);text-align:center">...e mais ${txs.length - 30} transações</div>` : ''}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" id="${previewId}ImportBtn">✅ Importar ${txs.length} lançamento${txs.length !== 1 ? 's' : ''}</button>
+      <button class="btn btn-secondary btn-sm" id="${previewId}CancelBtn">Cancelar</button>
+    </div>
+  `
+
+  previewEl.querySelector(`#${previewId}CancelBtn`)?.addEventListener('click', () => { previewEl.style.display = 'none' })
+  previewEl.querySelector(`#${previewId}ImportBtn`)?.addEventListener('click', async (e) => {
+    Loading.btn(e.target, true)
+    let imported = 0, errors = 0
+    for (const t of txs) {
+      try {
+        await endpoints.createTx({
+          description: t.description || 'Importado', amount: t.amount,
+          type: t.type || 'expense', due_date: t.date, status: 'pending',
+        })
+        imported++
+      } catch { errors++ }
+    }
+    if (errors > 0) Toast.error(`${imported} importados · ${errors} com erro`)
+    else Toast.success(`${imported} lançamento${imported !== 1 ? 's' : ''} importado${imported !== 1 ? 's' : ''}`)
+    previewEl.style.display = 'none'
+  })
 }
 
 function escHtml(s) {

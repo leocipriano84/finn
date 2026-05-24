@@ -77,7 +77,7 @@ function renderCharts(el, data, evolution, type) {
       <!-- Evolução diária -->
       <div class="card">
         <div class="card-header"><span class="card-title">Evolução diária</span><span class="text-xs text-soft">últimos 7 dias</span></div>
-        <div style="height:120px;position:relative">
+        <div style="height:120px;position:relative;overflow:hidden">
           <canvas id="dailyChart" width="300" height="120" style="width:100%;height:100%"></canvas>
         </div>
       </div>
@@ -108,7 +108,7 @@ function renderCharts(el, data, evolution, type) {
       <!-- Últimos 6 meses -->
       <div class="card" style="grid-column:1/-1">
         <div class="card-header"><span class="card-title">Últimos 6 meses</span></div>
-        <div style="height:140px">
+        <div style="height:140px;overflow:hidden;position:relative">
           <canvas id="monthlyChart" width="600" height="140" style="width:100%;height:100%"></canvas>
         </div>
       </div>
@@ -117,7 +117,7 @@ function renderCharts(el, data, evolution, type) {
       <!-- Receitas x Despesas (anual) -->
       <div class="card" style="grid-column:1/-1">
         <div class="card-header"><span class="card-title">Receitas × Despesas ${new Date().getFullYear()}</span></div>
-        <div style="height:160px">
+        <div style="height:160px;overflow:hidden;position:relative">
           <canvas id="evolutionChart" width="600" height="160" style="width:100%;height:100%"></canvas>
         </div>
       </div>
@@ -125,13 +125,13 @@ function renderCharts(el, data, evolution, type) {
     </div>
   `
 
-  // Render charts after DOM
-  setTimeout(() => {
+  // Render charts after DOM layout is flushed (double rAF avoids blank canvas)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     renderLineChart('dailyChart', daily, type === 'income' ? '#00F5A0' : '#FF6B6B')
     renderDonut('catDonut', categories.slice(0,5))
     renderBarChart('monthlyChart', monthly, type === 'income' ? '#00F5A0' : '#FF6B6B')
     if (evolution) renderDualLineChart('evolutionChart', evolution)
-  }, 50)
+  }))
 }
 
 function renderDonut(canvasId, data) {

@@ -119,10 +119,13 @@ export const endpoints = {
   depositGoal:     (d)     => api.post('/goals', { action: 'deposit', ...d }),
 
   // Coach
-  coachChat:       (msg)   => api.post('/coach', { action: 'chat', message: msg }),
-  coachReport:     ()      => api.get('/coach', { action: 'report' }),
-  coachProfile:    ()      => api.get('/coach', { action: 'profile' }),
-  coachHistory:    ()      => api.get('/coach', { action: 'history' }),
+  coachChat:              (msg)              => api.post('/coach', { action: 'chat', message: msg }),
+  coachReport:            ()                 => api.get('/coach', { action: 'report' }),
+  coachProfile:           ()                 => api.get('/coach', { action: 'profile' }),
+  coachHistory:           ()                 => api.get('/coach', { action: 'history' }),
+  coachParseInvoice:      (pdfText)          => api.post('/coach', { action: 'parse-invoice', pdfText }),
+  coachParseReceipt:      (pdfText)          => api.post('/coach', { action: 'parse-receipt', pdfText }),
+  coachParseReceiptImage: (imageBase64, mediaType) => api.post('/coach', { action: 'parse-receipt-image', imageBase64, mediaType }),
 
   // User
   profile:         ()      => api.get('/user', { action: 'profile' }),
@@ -132,4 +135,6 @@ export const endpoints = {
   achievements:    ()      => api.get('/user', { action: 'achievements' }),
   auditLog:        ()      => api.get('/user', { action: 'audit-log' }),
   restoreTx:       (d)     => api.post('/user', { action: 'restore-transaction', ...d }),
+  clearData:       ()      => api.post('/user', { action: 'clear-data' }),
+  deleteMyAccount: ()      => api.post('/user', { action: 'delete-account' }),
 }
