@@ -236,13 +236,13 @@ function cardRecurrence(rec, title) {
 function cardBudgets(budgets) {
   if (!budgets?.length) return ''
   const items = budgets.slice(0,4).map(b => {
-    const pct = b.amount > 0 ? Math.min(100, (b.spent || 0) / b.amount * 100) : 0
+    const pct = (b.limit_amount ?? b.amount ?? 0) > 0 ? Math.min(100, (b.spent || 0) / (b.limit_amount ?? b.amount) * 100) : 0
     const barClass = pct >= 100 ? 'danger' : pct >= b.alert_at_percent ? 'warning' : ''
     return `
       <div style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px">
           <span class="text-sm">${b.categories?.icon || '📦'} ${b.name}</span>
-          <span class="text-xs text-soft">${fmt.currency(b.spent || 0)} / ${fmt.currency(b.amount)}</span>
+          <span class="text-xs text-soft">${fmt.currency(b.spent || 0)} / ${fmt.currency(b.limit_amount ?? b.amount ?? 0)}</span>
         </div>
         <div class="progress-bar"><div class="progress-bar-fill ${barClass}" style="width:${pct}%"></div></div>
       </div>

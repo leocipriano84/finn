@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       const end = new Date(y, m, 0).toISOString().slice(0,10)
 
       const [budgetRes, txRes] = await Promise.all([
-        supabase.from('budgets').select('*, categories!category_id(name,icon,color)').eq('user_id', userId).eq('month', currentMonth),
+        supabase.from('budgets').select('*, categories!category_id(name,icon,color)').eq('user_id', userId).eq('month_year', currentMonth),
         supabase.from('transactions').select('category_id, amount, type').eq('user_id', userId)
           .gte('due_date', start).lte('due_date', end)
           .in('type', ['expense','expense_card']).not('ignore_in_budgets', 'eq', true)
@@ -33,10 +33,11 @@ export default async function handler(req, res) {
       const txs = txRes.data || []
 
       const result = budgets.map(b => {
-        const spent = txs.filter(t => t.category_id === b.category_id).reduce((s,t) => s + Number(t.amount), 0)
-        const pct = b.amount > 0 ? Math.min(100, (spent / b.amount) * 100) : 0
+        const limit = Number(b.limit_amount ?? b.amount ?? 0)
+        const spent = txs.filter(t => b.category_id ? t.category_id === b.category_id : true).reduce((s,t) => s + Number(t.amount), 0)
+        const pct = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0
         const status = pct >= 100 ? 'over' : pct >= b.alert_at_percent ? 'warning' : 'ok'
-        return { ...b, spent, pct, status, remaining: Math.max(0, b.amount - spent) }
+        return { ...b, limit_amount: limit, spent, pct, status, remaining: Math.max(0, limit - spent) }
       })
 
       return res.status(200).json(result)
@@ -44,30 +45,36 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabase.from('budgets')
       .select('*, categories!category_id(name,icon,color)')
-      .eq('user_id', userId).eq('month', currentMonth).order('created_at')
+      .eq('user_id', userId).eq('month_year', currentMonth).order('created_at')
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json(data)
   }
 
   if (req.method === 'POST') {
-    const { name, amount, category_id, month: bMonth, period, alert_at_percent } = req.body || {}
-    if (!name || !amount) return res.status(400).json({ error: 'Nome e valor obrigatórios' })
+    const body = req.body || {}
+    const { name, category_id, period, alert_at_percent, alert_threshold } = body
+    const limitAmount = parseFloat(body.limit_amount ?? body.amount ?? body.value ?? body.limit ?? 0)
+    const monthYear = body.month_year || body.month || currentMonth
 
-    const { data, error } = await supabase.from('budgets').insert({
+    if (!name || !limitAmount) return res.status(400).json({ error: 'Nome e valor obrigatórios' })
+
+    const insertData = {
       user_id: userId,
       name: String(name).substring(0,100),
-      amount: Number(amount),
+      limit_amount: limitAmount,
       category_id: category_id || null,
-      month: bMonth || currentMonth,
-      period: period || 'monthly',
-      alert_at_percent: Number(alert_at_percent) || 80,
-    }).select().single()
+      month_year: monthYear,
+      alert_at_percent: Number(alert_threshold || alert_at_percent) || 80,
+    }
+    console.log('[budgets] insertData:', JSON.stringify(insertData))
+
+    const { data, error } = await supabase.from('budgets').insert(insertData).select().single()
     if (error) return res.status(500).json({ error: error.message })
     return res.status(201).json(data)
   }
 
   if (req.method === 'PUT' && id) {
-    const fields = ['name','amount','category_id','month','period','alert_at_percent']
+    const fields = ['name','limit_amount','category_id','month_year','alert_at_percent']
     const updates = { updated_at: new Date().toISOString() }
     for (const f of fields) {
       if (req.body?.[f] !== undefined) updates[f] = req.body[f]

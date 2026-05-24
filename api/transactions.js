@@ -9,6 +9,23 @@ async function getUserId(req) {
   return data?.user?.id ?? null
 }
 
+function parseAccountSelection(body) {
+  const sel = body.account_selection || ''
+  if (sel.startsWith('card:')) return { account_id: null, credit_card_id: sel.replace('card:', '') }
+  if (sel.startsWith('account:')) return { account_id: sel.replace('account:', ''), credit_card_id: null }
+  const account_id = body.account_id && body.account_id !== '' && body.account_id !== 'null' ? body.account_id : null
+  const credit_card_id = body.credit_card_id && body.credit_card_id !== '' && body.credit_card_id !== 'null' ? body.credit_card_id : null
+  return { account_id, credit_card_id }
+}
+
+function normalizeType(type) {
+  if (type === 'card' || type === 'expense_card') return 'expense_card'
+  if (type === 'expense') return 'expense'
+  if (type === 'income') return 'income'
+  if (type === 'transfer') return 'transfer'
+  return type || 'expense'
+}
+
 export default async function handler(req, res) {
   const userId = await getUserId(req)
   if (!userId) return res.status(401).json({ error: 'Não autenticado' })
@@ -105,7 +122,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ updated: 0 })
     }
 
-    const { description, amount, type, category, date, notes, frequency, recurrence, installment_total, due_date, status, account_id, credit_card_id, category_id } = req.body || {}
+    console.log('[transactions] body recebido:', JSON.stringify({
+      type: req.body?.type,
+      recurrence: req.body?.recurrence,
+      account_id: req.body?.account_id,
+      credit_card_id: req.body?.credit_card_id,
+      account_selection: req.body?.account_selection,
+      category_id: req.body?.category_id,
+      status: req.body?.status,
+    }))
+
+    const { description, amount, category, date, notes, frequency, recurrence, installment_total, due_date, status, category_id } = req.body || {}
+    const { account_id, credit_card_id } = parseAccountSelection(req.body || {})
+    const type = normalizeType(req.body?.type)
     if (!description || !amount || !type) {
       return res.status(400).json({ error: 'Descrição, valor e tipo são obrigatórios' })
     }
@@ -133,10 +162,10 @@ export default async function handler(req, res) {
         const isoDate = dt.toISOString().slice(0,10)
         records.push({
           user_id: userId, description: `${description} (${i+1}/${nInstallments})`,
-          amount: perInstallment, type, category: category || 'outros',
+          amount: perInstallment, type: normalizeType(type), category: category || 'outros',
           date: isoDate, due_date: isoDate, notes: notes || null, frequency: 'once',
           recurrence: 'installment',
-          status: txStatus, account_id: account_id || null, credit_card_id: credit_card_id || null,
+          status: txStatus, account_id, credit_card_id,
           category_id: category_id || null,
           installment_current: i + 1, installment_total: nInstallments,
         })
@@ -151,8 +180,8 @@ export default async function handler(req, res) {
       category: category || 'outros', date: baseDate, due_date: baseDate,
       notes: notes || null, frequency: freq, recurrence: recurrence || 'none',
       status: txStatus,
-      account_id: account_id || null,
-      credit_card_id: credit_card_id || null,
+      account_id,
+      credit_card_id,
       category_id: category_id || null,
     }
     const { data, error } = await supabase.from('transactions').insert(record).select().single()

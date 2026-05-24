@@ -65,7 +65,7 @@ function renderBudgets(el, budgets) {
         </div>
 
         <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-          <div><span style="font-size:var(--text-sm);font-weight:600;color:${statusColor};font-family:var(--font-mono)">${fmt.currency(b.spent)}</span><span style="font-size:var(--text-xs);color:var(--color-text-soft)"> de ${fmt.currency(b.amount)}</span></div>
+          <div><span style="font-size:var(--text-sm);font-weight:600;color:${statusColor};font-family:var(--font-mono)">${fmt.currency(b.spent)}</span><span style="font-size:var(--text-xs);color:var(--color-text-soft)"> de ${fmt.currency(b.limit_amount ?? b.amount ?? 0)}</span></div>
           <div style="font-size:var(--text-sm);font-weight:600;font-family:var(--font-mono)">${fmt.percent(b.pct)}</div>
         </div>
 
@@ -147,9 +147,10 @@ function openBudgetModal(id) {
     Loading.btn(e.target, true)
     try {
       const payload = {
-        name, amount,
+        name,
+        limit_amount: amount,
         category_id: overlay.querySelector('#bCategory')?.value || null,
-        month: overlay.querySelector('#bMonth')?.value || store.getMonth(),
+        month_year: overlay.querySelector('#bMonth')?.value || store.getMonth(),
         alert_at_percent: Number(overlay.querySelector('#bAlert')?.value) || 80,
       }
       if (id) await endpoints.updateBudget(id, payload)
