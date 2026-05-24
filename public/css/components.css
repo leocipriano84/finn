@@ -911,3 +911,26 @@ canvas {
 }
 .rank-value { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; text-align: right; flex-shrink: 0; }
 .rank-pct { font-size: var(--text-xs); color: var(--color-text-soft); text-align: right; width: 40px; flex-shrink: 0; }
+
+/* ================================================
+   FIX HOVER BOTÕES (BUG 6)
+   Garante que texto de botões nunca vire preto no hover
+   ================================================ */
+button:not([disabled]):hover { color: inherit; }
+.btn-secondary:hover { color: var(--color-text) !important; }
+.btn-primary:hover   { background: #00d98f !important; color: #050508 !important; }
+.btn-danger:hover    { background: rgba(255,107,107,0.25) !important; color: var(--color-red) !important; }
+.btn-icon:hover      { background: var(--color-card-hover) !important; color: var(--color-text) !important; }
+
+/* ================================================
+   FIX GRÁFICOS (BUG 7)
+   Canvas sempre transparente; container contém o overflow
+   ================================================ */
+canvas { background: transparent !important; }
+.chart-container {
+  position: relative;
+  overflow: hidden;
+  background: transparent !important;
+}
+/* Garantir que containers inline de gráficos não vazem */
+[id$="Chart"], [id$="chart"] { display: block; }

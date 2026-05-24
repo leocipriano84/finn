@@ -181,7 +181,8 @@ function transactionItem(t) {
   const statusIcon = isPending ? (isOverdue ? '🔴' : '⏰') : '✅'
 
   const installText = t.installment_total > 1 ? ` ${t.installment_current}/${t.installment_total}` : ''
-  const recText = t.recurrence === 'fixed_monthly' ? ' • Fixa' : ''
+  const FIXED_REC = new Set(['monthly','fixed_monthly','weekly','fixed_weekly','yearly','fixed_yearly','daily','biweekly','bimonthly','quarterly','semiannual'])
+  const recText = FIXED_REC.has(t.recurrence) ? ' • Recorrente' : ''
 
   return `
     <div class="transaction-item${isOverdue ? ' overdue' : isDueSoon ? ' due-soon' : ''}" data-tx-id="${t.id}" data-tx-rec-group="${t.recurrence_group_id || ''}">
@@ -413,7 +414,7 @@ function renderSummaryBar(el, summary, type) {
 
 // ===== MODAL DE NOVO/EDITAR LANÇAMENTO =====
 export async function openTransactionModal(opts = {}) {
-  const { type = 'expense', id, prefill } = opts
+  const { type = 'expense', id, prefill, credit_card_id: presetCardId } = opts
   let existing = null
 
   if (id) {
@@ -422,11 +423,17 @@ export async function openTransactionModal(opts = {}) {
 
   const accounts = store.get('accounts') || []
   const categories = store.get('categories') || []
+  const creditCards = store.get('creditCards') || []
+
+  // Pre-select card if launched from card widget
+  if (presetCardId && !existing) {
+    existing = { type: type || 'expense_card', credit_card_id: presetCardId }
+  }
 
   const txBase = existing || { type }
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
-  overlay.innerHTML = buildTransactionModal(txBase, accounts, categories)
+  overlay.innerHTML = buildTransactionModal(txBase, accounts, categories, creditCards)
   document.body.appendChild(overlay)
   requestAnimationFrame(() => overlay.classList.add('open'))
 
@@ -442,16 +449,19 @@ export async function openTransactionModal(opts = {}) {
     }
   }
 
-  // Load accounts & categories if not cached
-  if (!accounts.length || !categories.length) {
+  // Load accounts, categories e credit cards se não estiverem em cache
+  const needsLoad = !accounts.length || !categories.length || !creditCards.length
+  if (needsLoad) {
     try {
-      const [accs, cats] = await Promise.all([
-        endpoints.accounts(),
-        endpoints.categories()
-      ])
+      const toFetch = [endpoints.accounts(), endpoints.categories()]
+      if (!creditCards.length) toFetch.push(endpoints.cardInvoices({ month: store.getMonth() }))
+      const results = await Promise.all(toFetch)
+      const [accs, cats] = results
+      const cards = results[2] || creditCards
       store.set('accounts', accs)
       store.set('categories', cats)
-      rebuildModalSelects(overlay, accs, cats, existing)
+      store.set('creditCards', cards)
+      rebuildModalSelects(overlay, accs, cats, cards, existing)
 
       // Selecionar categoria pelo hint de voz
       if (prefill?.category_hint) {
@@ -470,7 +480,26 @@ function getDefaultDueDate() {
   return date.today()
 }
 
-function buildTransactionModal(tx, accounts, categories) {
+function buildAccountSelectOptions(accounts, creditCards, tx) {
+  const accParts = (accounts || []).map(a => {
+    const val = `account:${a.id}`
+    const sel = tx?.account_id === a.id ? 'selected' : ''
+    return `<option value="${val}" ${sel}>${a.name}</option>`
+  }).join('')
+
+  const cardParts = (creditCards || []).map(c => {
+    const val = `card:${c.id}`
+    const sel = tx?.credit_card_id === c.id ? 'selected' : ''
+    return `<option value="${val}" ${sel}>${c.name} (cartão)</option>`
+  }).join('')
+
+  let html = ''
+  if (accParts) html += `<optgroup label="🏦 Contas bancárias">${accParts}</optgroup>`
+  if (cardParts) html += `<optgroup label="💳 Cartões de crédito">${cardParts}</optgroup>`
+  return html
+}
+
+function buildTransactionModal(tx, accounts, categories, creditCards = []) {
   const isEdit = !!tx.id
   const txType = tx.type || 'expense'
 
@@ -481,18 +510,11 @@ function buildTransactionModal(tx, accounts, categories) {
     expense_card: 'Nova Despesa — Cartão de crédito',
   }
 
-  const typeBtnColors = {
-    expense: 'btn-expense',
-    income:  'btn-income',
-    transfer: 'background:var(--color-yellow);color:#050508',
-    expense_card: 'background:var(--color-blue);color:#fff',
-  }
-
   const expenseCategories = (categories || []).filter(c => c.type === 'expense' || c.type === 'both')
   const incomeCategories  = (categories || []).filter(c => c.type === 'income' || c.type === 'both')
   const cats = txType === 'income' ? incomeCategories : expenseCategories
 
-  const accOptions = (accounts || []).map(a => `<option value="${a.id}" ${tx.account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')
+  const accountSelectOptions = buildAccountSelectOptions(accounts, creditCards, tx)
   // Apenas categorias pai no select principal
   const catOptions = cats.map(c => `<option value="${c.id}" ${tx.category_id === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')
 
@@ -606,12 +628,12 @@ function buildTransactionModal(tx, accounts, categories) {
           </div>
         </div>
 
-        <!-- Conta -->
+        <!-- Conta / Cartão -->
         <div class="form-group">
-          <label class="form-label">Conta</label>
+          <label class="form-label">Conta / Cartão</label>
           <select id="txAccount" class="form-control">
             <option value="">Selecione...</option>
-            ${accOptions}
+            ${accountSelectOptions}
           </select>
         </div>
 
@@ -742,6 +764,18 @@ function attachModalEvents(overlay, existing) {
     if (!description) { Toast.error('Informe a descrição'); return }
 
     const recurrence = overlay.querySelector('#txRecurrence')?.value || 'none'
+
+    // Parsear seleção de conta/cartão com prefixo
+    const rawAccountVal = overlay.querySelector('#txAccount')?.value || ''
+    let account_id = null, credit_card_id = null
+    if (rawAccountVal.startsWith('card:')) {
+      credit_card_id = rawAccountVal.slice(5) || null
+    } else if (rawAccountVal.startsWith('account:')) {
+      account_id = rawAccountVal.slice(8) || null
+    } else if (rawAccountVal) {
+      account_id = rawAccountVal  // legado: UUID puro
+    }
+
     const payload = {
       type: txType,
       amount,
@@ -755,7 +789,8 @@ function attachModalEvents(overlay, existing) {
       recurrence_interval: recurrence === 'custom' ? Number(overlay.querySelector('#txCustomInterval')?.value) || 1 : null,
       recurrence_unit:     recurrence === 'custom' ? (overlay.querySelector('#txCustomUnit')?.value || 'months') : null,
       category_id: overlay.querySelector('#txSubcategory')?.value || overlay.querySelector('#txCategory')?.value || null,
-      account_id:  overlay.querySelector('#txAccount')?.value  || null,
+      account_id,
+      credit_card_id,
       notes:       overlay.querySelector('#txNotes')?.value    || null,
       ignore_in_charts:  overlay.querySelector('#txIgnoreCharts')?.checked  || false,
       ignore_in_budgets: overlay.querySelector('#txIgnoreBudgets')?.checked || false,
@@ -792,12 +827,12 @@ function attachModalEvents(overlay, existing) {
   })
 }
 
-function rebuildModalSelects(overlay, accounts, categories, tx = null) {
+function rebuildModalSelects(overlay, accounts, categories, creditCards = [], tx = null) {
   const accSel = overlay.querySelector('#txAccount')
   if (accSel) {
-    accSel.innerHTML = '<option value="">Selecione...</option>' +
-      accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')
-    if (tx?.account_id) accSel.value = tx.account_id
+    accSel.innerHTML = '<option value="">Selecione...</option>' + buildAccountSelectOptions(accounts, creditCards, tx)
+    if (tx?.credit_card_id) accSel.value = `card:${tx.credit_card_id}`
+    else if (tx?.account_id) accSel.value = `account:${tx.account_id}`
   }
   const catSel = overlay.querySelector('#txCategory')
   if (catSel) {

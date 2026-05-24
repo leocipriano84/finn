@@ -121,12 +121,63 @@ async function deleteAccount(id, name) {
   } catch (e) { Toast.error(e.message) }
 }
 
+function buildBankDropdownHTML(containerId, selectedCode = '') {
+  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦' }
+  const items = BANKS.map(b => `
+    <div class="bank-dd-item" data-code="${b.code}" onclick="window.__selectBank('${containerId}','${b.code}','${b.emoji}','${b.name.replace(/'/g,"\\'")}')">
+      <span>${b.emoji}</span><span>${b.name}</span>
+    </div>`).join('')
+  return `
+    <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
+      <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleBankDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <span id="${containerId}-emoji">${sel.emoji}</span>
+        <span id="${containerId}-label" style="flex:1">${sel.name}</span>
+        <span style="color:var(--color-text-muted);font-size:10px">▾</span>
+      </div>
+      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.2)">
+        ${items}
+      </div>
+      <input type="hidden" id="${containerId}" value="${selectedCode}">
+    </div>
+  `
+}
+
+// Helpers globais para o dropdown de banco (closures não funcionam em onclick inline)
+window.__toggleBankDD = function(id) {
+  const dd = document.getElementById(`${id}-dropdown`)
+  if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none'
+}
+window.__selectBank = function(id, code, emoji, name) {
+  const hidden = document.getElementById(id)
+  const trigger = document.getElementById(`${id}-trigger`)
+  const emojiEl = document.getElementById(`${id}-emoji`)
+  const labelEl = document.getElementById(`${id}-label`)
+  const dd = document.getElementById(`${id}-dropdown`)
+  if (hidden) hidden.value = code
+  if (emojiEl) emojiEl.textContent = emoji
+  if (labelEl) labelEl.textContent = name
+  if (dd) dd.style.display = 'none'
+  // Auto-fill account name if empty
+  const nameInput = document.getElementById('accName')
+  if (nameInput && !nameInput.value && name !== 'Selecione...') nameInput.value = name
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click', e => {
+  if (!e.target.closest('.bank-dd')) {
+    document.querySelectorAll('[id$="-dropdown"].bank-dd-item ~ *').forEach(d => d.style.display = 'none')
+    document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
+      if (d.closest('.bank-dd')) d.style.display = 'none'
+    })
+  }
+})
+
 function openAccountModal(id) {
   const accounts = store.get('accounts') || []
   const acc = id ? accounts.find(a => a.id === id) : null
 
-  const bankOptions = BANKS.map(b => `<option value="${b.code}" ${acc?.bank_code === b.code ? 'selected' : ''}>${b.emoji} ${b.name}</option>`).join('')
   const colorSwatches = COLORS.map(c => `<div class="color-swatch ${acc?.color === c ? 'selected' : ''}" style="background:${c}" data-color="${c}"></div>`).join('')
+  const bankDropdown = buildBankDropdownHTML('accBank', acc?.bank_code || '')
 
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
@@ -139,7 +190,7 @@ function openAccountModal(id) {
       <div class="modal-body">
         <div class="form-group"><label class="form-label required">Nome da conta</label><input id="accName" class="form-control" value="${acc?.name || ''}" placeholder="Ex: Nubank, Carteira..."></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Banco</label><select id="accBank" class="form-control"><option value="">Selecione...</option>${bankOptions}</select></div>
+          <div class="form-group"><label class="form-label">Banco</label>${bankDropdown}</div>
           <div class="form-group"><label class="form-label">Tipo</label><select id="accType" class="form-control"><option value="checking" ${acc?.type==='checking'?'selected':''}>Conta Corrente</option><option value="savings" ${acc?.type==='savings'?'selected':''}>Poupança</option><option value="cash" ${acc?.type==='cash'?'selected':''}>Carteira</option><option value="investment" ${acc?.type==='investment'?'selected':''}>Investimento</option><option value="other" ${acc?.type==='other'?'selected':''}>Outro</option></select></div>
         </div>
         <div class="form-group"><label class="form-label">Saldo inicial</label><input id="accBalance" class="form-control" type="number" step="0.01" value="${acc?.initial_balance || 0}" placeholder="0,00"></div>
@@ -162,6 +213,14 @@ function openAccountModal(id) {
   overlay.querySelector('#accModalCancel')?.addEventListener('click', close)
   overlay.addEventListener('click', e => { if (e.target === overlay) close() })
 
+  // Adicionar estilo para itens do dropdown de banco
+  if (!document.getElementById('bank-dd-style')) {
+    const s = document.createElement('style')
+    s.id = 'bank-dd-style'
+    s.textContent = `.bank-dd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;color:var(--color-text)}.bank-dd-item:hover{background:var(--color-card-hover)}`
+    document.head.appendChild(s)
+  }
+
   // Color picker
   overlay.querySelectorAll('.color-swatch').forEach(sw => {
     sw.addEventListener('click', () => {
@@ -169,14 +228,6 @@ function openAccountModal(id) {
       sw.classList.add('selected')
       overlay.querySelector('#accColor').value = sw.dataset.color
     })
-  })
-
-  // Banco → atualiza nome
-  overlay.querySelector('#accBank')?.addEventListener('change', e => {
-    const bank = BANKS.find(b => b.code === e.target.value)
-    if (bank && !overlay.querySelector('#accName').value) {
-      overlay.querySelector('#accName').value = bank.name
-    }
   })
 
   overlay.querySelector('#accModalSave')?.addEventListener('click', async (e) => {

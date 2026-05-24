@@ -155,6 +155,9 @@ function renderDonut(canvasId, data) {
 function renderLineChart(canvasId, daily, color = '#00F5A0') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !daily?.length) return
+  // Sincroniza dimensão real do canvas com o tamanho exibido (evita bloco colorido)
+  if (canvas.offsetWidth > 0) canvas.width = canvas.offsetWidth
+  if (canvas.offsetHeight > 0) canvas.height = canvas.offsetHeight
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
   const max = Math.max(...daily.map(d => d.total), 1)
@@ -177,6 +180,8 @@ function renderLineChart(canvasId, daily, color = '#00F5A0') {
 function renderBarChart(canvasId, monthly, color = '#00F5A0') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !monthly?.length) return
+  if (canvas.offsetWidth > 0) canvas.width = canvas.offsetWidth
+  if (canvas.offsetHeight > 0) canvas.height = canvas.offsetHeight
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
   const max = Math.max(...monthly.map(m => m.total), 1)
@@ -196,6 +201,8 @@ function renderBarChart(canvasId, monthly, color = '#00F5A0') {
 function renderDualLineChart(canvasId, data) {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !data?.length) return
+  if (canvas.offsetWidth > 0) canvas.width = canvas.offsetWidth
+  if (canvas.offsetHeight > 0) canvas.height = canvas.offsetHeight
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1)

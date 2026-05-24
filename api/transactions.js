@@ -114,9 +114,14 @@ export default async function handler(req, res) {
     const txStatus = status || 'pending'
     const nInstallments = Number(installment_total) || 1
     const freq = recurrence === 'installment' ? 'once'
-      : recurrence === 'fixed_monthly' ? 'monthly'
-      : recurrence === 'fixed_weekly' ? 'weekly'
-      : recurrence === 'fixed_yearly' ? 'yearly'
+      : (recurrence === 'monthly' || recurrence === 'fixed_monthly') ? 'monthly'
+      : (recurrence === 'weekly'  || recurrence === 'fixed_weekly')  ? 'weekly'
+      : (recurrence === 'yearly'  || recurrence === 'fixed_yearly')  ? 'yearly'
+      : recurrence === 'daily'      ? 'daily'
+      : recurrence === 'biweekly'   ? 'biweekly'
+      : recurrence === 'bimonthly'  ? 'bimonthly'
+      : recurrence === 'quarterly'  ? 'quarterly'
+      : recurrence === 'semiannual' ? 'semiannual'
       : frequency || 'once'
 
     if (recurrence === 'installment' && nInstallments > 1) {
@@ -130,8 +135,10 @@ export default async function handler(req, res) {
           user_id: userId, description: `${description} (${i+1}/${nInstallments})`,
           amount: perInstallment, type, category: category || 'outros',
           date: isoDate, due_date: isoDate, notes: notes || null, frequency: 'once',
+          recurrence: 'installment',
           status: txStatus, account_id: account_id || null, credit_card_id: credit_card_id || null,
           category_id: category_id || null,
+          installment_current: i + 1, installment_total: nInstallments,
         })
       }
       const { data, error } = await supabase.from('transactions').insert(records).select()
@@ -142,8 +149,10 @@ export default async function handler(req, res) {
     const record = {
       user_id: userId, description, amount: Number(amount), type,
       category: category || 'outros', date: baseDate, due_date: baseDate,
-      notes: notes || null, frequency: freq, status: txStatus,
-      account_id: account_id || null, credit_card_id: credit_card_id || null,
+      notes: notes || null, frequency: freq, recurrence: recurrence || 'none',
+      status: txStatus,
+      account_id: account_id || null,
+      credit_card_id: credit_card_id || null,
       category_id: category_id || null,
     }
     const { data, error } = await supabase.from('transactions').insert(record).select().single()
@@ -153,10 +162,17 @@ export default async function handler(req, res) {
 
   // PUT
   if (req.method === 'PUT' && id) {
-    const allowed = ['description','amount','type','category','date','due_date','notes','frequency','status','account_id','credit_card_id','category_id','ignore_in_charts','ignore_in_budgets','ignore_in_totals']
+    const allowed = ['description','amount','type','category','date','due_date','notes','frequency','recurrence','status','account_id','credit_card_id','category_id','ignore_in_charts','ignore_in_budgets','ignore_in_totals']
     const updates = {}
     for (const f of allowed) {
-      if (req.body?.[f] !== undefined) updates[f] = req.body[f]
+      if (req.body?.[f] !== undefined) {
+        // Convert empty string to null for UUID fields to avoid FK constraint errors
+        if ((f === 'account_id' || f === 'credit_card_id' || f === 'category_id') && req.body[f] === '') {
+          updates[f] = null
+        } else {
+          updates[f] = req.body[f]
+        }
+      }
     }
     const { data, error } = await supabase.from('transactions').update(updates)
       .eq('id', id).eq('user_id', userId).select().single()

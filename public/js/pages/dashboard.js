@@ -279,16 +279,18 @@ function renderDonutChart(canvasId, data) {
     angle += slice
   })
 
-  // Hole
+  // Hole — usar a cor do card para seguir o tema
   ctx.beginPath()
   ctx.arc(cx, cy, r * 0.55, 0, Math.PI * 2)
-  ctx.fillStyle = '#0d0d14'
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--color-card').trim() || '#0d0d14'
   ctx.fill()
 }
 
 function renderLineChart(canvasId, daily) {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !daily?.length) return
+  if (canvas.offsetWidth > 0) canvas.width = canvas.offsetWidth
+  if (canvas.offsetHeight > 0) canvas.height = canvas.offsetHeight
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
   const max = Math.max(...daily.map(d => d.total), 1)

@@ -83,7 +83,7 @@ function renderCategories(el, cats, type) {
         <div id="subs_${cat.id}" style="margin-top:8px;margin-left:48px;display:flex;flex-direction:column;gap:4px">
           ${cat.children.map(sub => `
             <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--color-border)">
-              <span style="font-size:12px">└</span>
+              <span style="font-size:10px;color:var(--color-text-muted);opacity:0.5;line-height:1">└</span>
               <span style="font-size:var(--text-sm);flex:1">${sub.name}</span>
               <button class="btn btn-icon btn-sm" data-cat-edit="${sub.id}" style="font-size:11px;padding:3px 6px">✏️</button>
               ${!sub.is_default ? `<button class="btn btn-icon btn-sm" data-cat-del="${sub.id}" style="font-size:11px;padding:3px 6px">🗑️</button>` : ''}
