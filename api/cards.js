@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       return res.status(200).json(result)
     }
 
-    const { name, bank_name, bank_code, flag, limit_amount, closing_day, due_day, dynamic_closing, due_on_business_day, account_id, color, is_main, sort_order } = req.body || {}
+    const { name, bank_name, bank_code, flag, limit_amount, closing_day, due_day, dynamic_closing, due_on_business_day, account_id, color, is_main, sort_order, last_digits, opening_balance } = req.body || {}
     if (!name || !closing_day || !due_day) return res.status(400).json({ error: 'Nome, dia de fechamento e vencimento são obrigatórios' })
 
     if (is_main) {
@@ -142,13 +142,14 @@ export default async function handler(req, res) {
       dynamic_closing: dynamic_closing || false, due_on_business_day: due_on_business_day || false,
       account_id: account_id || null, color: color || '#00C9FF',
       is_main: is_main || false, sort_order: sort_order || 0,
+      last_digits: last_digits || null, opening_balance: parseFloat(opening_balance || 0),
     }).select().single()
     if (error) return res.status(500).json({ error: error.message })
     return res.status(201).json(data)
   }
 
   if (req.method === 'PUT' && id) {
-    const fields = ['name','bank_name','bank_code','flag','limit_amount','closing_day','due_day','dynamic_closing','due_on_business_day','account_id','color','is_main','archived','sort_order']
+    const fields = ['name','bank_name','bank_code','flag','limit_amount','closing_day','due_day','dynamic_closing','due_on_business_day','account_id','color','is_main','archived','sort_order','last_digits','opening_balance']
     const updates = {}
     for (const f of fields) {
       if (req.body?.[f] !== undefined) updates[f] = req.body[f]

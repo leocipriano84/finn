@@ -3,49 +3,82 @@ import { store } from '../core/store.js'
 import { fmt } from '../core/utils.js'
 
 let unsubMonth = null
+let currentType = 'expense'
+let currentStatus = ''
 
 export async function render(el) {
+  if (!document.getElementById('report-chip-style')) {
+    const s = document.createElement('style')
+    s.id = 'report-chip-style'
+    s.textContent = `.r-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--color-border);background:var(--color-card);color:var(--color-text-soft);font-size:13px;cursor:pointer;transition:all 150ms;white-space:nowrap}.r-chip.active{background:var(--color-green);color:#050508;border-color:var(--color-green)}.r-chip:hover:not(.active){border-color:var(--color-text-muted);color:var(--color-text)}`
+    document.head.appendChild(s)
+  }
+
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%">
-      <div style="padding:var(--space-4) var(--space-5);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-3);flex-shrink:0">
-        <select id="reportType" class="form-control" style="width:160px;padding:8px 12px">
-          <option value="expense">🔴 Despesas</option>
-          <option value="income">🟢 Receitas</option>
-          <option value="all">🔵 Todas</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" id="reportFilter">🔍 Filtrar</button>
+      <div style="padding:var(--space-3) var(--space-5);border-bottom:1px solid var(--color-border);flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;gap:6px">
+            <button class="r-chip active" data-report-type="expense">🔴 Despesas</button>
+            <button class="r-chip" data-report-type="income">🟢 Receitas</button>
+            <button class="r-chip" data-report-type="all">🔵 Todas</button>
+          </div>
+          <div style="width:1px;height:24px;background:var(--color-border)"></div>
+          <div style="display:flex;gap:6px">
+            <button class="r-chip active" data-report-status="">Todos</button>
+            <button class="r-chip" data-report-status="confirmed">✅ Efetivados</button>
+            <button class="r-chip" data-report-status="pending">⏳ Pendentes</button>
+          </div>
+        </div>
       </div>
       <div style="flex:1;overflow-y:auto;" id="reportBody"></div>
     </div>
   `
 
-  const typeSelect = el.querySelector('#reportType')
-  typeSelect?.addEventListener('change', () => loadReport(typeSelect.value))
-  unsubMonth = store.subscribe('currentMonth', () => loadReport(typeSelect?.value || 'expense'))
-  await loadReport('expense')
+  el.querySelectorAll('[data-report-type]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('[data-report-type]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      currentType = btn.dataset.reportType
+      loadReport()
+    })
+  })
+
+  el.querySelectorAll('[data-report-status]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('[data-report-status]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      currentStatus = btn.dataset.reportStatus
+      loadReport()
+    })
+  })
+
+  unsubMonth = store.subscribe('currentMonth', loadReport)
+  await loadReport()
   el.addEventListener('__cleanup', () => unsubMonth?.(), { once: true })
 }
 
-async function loadReport(type) {
+async function loadReport() {
   const body = document.getElementById('reportBody')
   if (!body) return
   body.innerHTML = Array(3).fill('<div class="skeleton" style="height:80px;border-radius:12px;margin:16px;"></div>').join('')
 
   try {
     const [cats, txResult] = await Promise.all([
-      endpoints.categoryReport({ month: store.getMonth(), type }),
-      endpoints.transactions({ month: store.getMonth(), type: type === 'all' ? undefined : type, limit: 100 })
+      endpoints.categoryReport({ month: store.getMonth(), type: currentType }),
+      endpoints.transactions({ month: store.getMonth(), type: currentType === 'all' ? undefined : currentType, limit: 200 })
     ])
 
-    renderReport(body, cats, txResult, type)
+    const allTxs = txResult.data || []
+    const filteredTxs = currentStatus ? allTxs.filter(t => t.status === currentStatus) : allTxs
+    renderReport(body, cats, filteredTxs, currentType)
   } catch (e) {
     body.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>${e.message}</p></div>`
   }
 }
 
-function renderReport(el, catsData, txResult, type) {
+function renderReport(el, catsData, txs, type) {
   const { categories, total } = catsData
-  const txs = txResult.data || []
 
   el.innerHTML = `
     <div style="padding:var(--space-5);display:flex;flex-direction:column;gap:var(--space-5)">

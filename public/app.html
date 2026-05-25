@@ -30,6 +30,44 @@
   <script type="module" src="/js/core/theme.js"></script>
 
   <style>
+    /* Bottom nav mobile */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      background: var(--color-sidebar-bg);
+      border-top: 1px solid var(--color-border);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bottom-nav-inner {
+      display: flex;
+      height: 58px;
+    }
+    .bottom-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      padding: 6px 2px;
+      color: rgba(255,255,255,0.45);
+      transition: color 150ms;
+      font-size: 10px;
+      font-family: var(--font-body);
+    }
+    .bottom-nav-item.active { color: var(--color-green); }
+    .bottom-nav-item:active { opacity: 0.7; }
+    .bottom-nav-icon { font-size: 20px; line-height: 1; }
+    @media (max-width: 768px) {
+      .bottom-nav { display: block; }
+      .page-body { padding-bottom: calc(58px + env(safe-area-inset-bottom)) !important; }
+      .fab { bottom: calc(68px + env(safe-area-inset-bottom)); }
+      .fab-menu { bottom: calc(128px + env(safe-area-inset-bottom)); }
+    }
+
     .app-loading {
       position: fixed; inset: 0;
       background: var(--color-bg);
@@ -107,8 +145,12 @@
         <span class="sidebar-item-icon">📋</span>
         <span>Relatórios</span>
       </div>
-      <div class="sidebar-item" data-page="annual">
+      <div class="sidebar-item" data-page="calendar">
         <span class="sidebar-item-icon">📅</span>
+        <span>Calendário</span>
+      </div>
+      <div class="sidebar-item" data-page="annual">
+        <span class="sidebar-item-icon">📊</span>
         <span>Visão anual</span>
       </div>
       <div class="sidebar-item" data-page="charts">
@@ -209,8 +251,47 @@
 <!-- Container de toasts -->
 <div id="toast-container" class="toast-container"></div>
 
+<!-- Bottom nav mobile -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-inner">
+    <div class="bottom-nav-item" data-page="dashboard">
+      <span class="bottom-nav-icon">📊</span>
+      <span>Resumo</span>
+    </div>
+    <div class="bottom-nav-item" data-page="transactions">
+      <span class="bottom-nav-icon">💸</span>
+      <span>Lançamentos</span>
+    </div>
+    <div class="bottom-nav-item" data-page="credit-cards">
+      <span class="bottom-nav-icon">💳</span>
+      <span>Cartões</span>
+    </div>
+    <div class="bottom-nav-item" data-page="goals">
+      <span class="bottom-nav-icon">🎯</span>
+      <span>Objetivos</span>
+    </div>
+    <div class="bottom-nav-item" data-page="profile">
+      <span class="bottom-nav-icon">👤</span>
+      <span>Perfil</span>
+    </div>
+  </div>
+</nav>
+
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<script>
+// Fallback para logos de bancos que não carregam (acessível por qualquer módulo)
+window.__bankImgError = function(img) {
+  var c = img.dataset.bankFallbackColor || '#888'
+  var l = img.dataset.bankFallbackLetter || '?'
+  var size = img.width || 24
+  var span = document.createElement('span')
+  span.style.cssText = 'display:inline-flex;width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + c + ';color:#fff;font-size:' + Math.round(size * 0.45) + 'px;font-weight:700;align-items:center;justify-content:center;flex-shrink:0'
+  span.textContent = l
+  img.replaceWith(span)
+}
+</script>
 
 <!-- Fallback: se o módulo JS falhar completamente, redireciona em 5s -->
 <script>
@@ -347,6 +428,7 @@ const PAGE_TITLES = {
   budgets:      'Orçamentos',
   goals:        'Objetivos',
   reports:      'Relatórios',
+  calendar:     'Calendário',
   annual:       'Visão anual',
   charts:       'Gráficos',
   categories:   'Categorias',
@@ -359,6 +441,14 @@ const PAGE_TITLES = {
 store.subscribe('page', (page) => {
   const titleEl = document.getElementById('pageTitle')
   if (titleEl) titleEl.textContent = PAGE_TITLES[page] || page
+  // Atualiza item ativo na sidebar
+  document.querySelectorAll('.sidebar-item[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page)
+  })
+  // Atualiza item ativo no bottom nav
+  document.querySelectorAll('.bottom-nav-item[data-page]').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page)
+  })
 })
 
 // Sidebar items — navegação
@@ -420,6 +510,7 @@ router.register('credit-cards', () => import('/js/pages/credit-cards.js'))
 router.register('budgets',      () => import('/js/pages/budgets.js'))
 router.register('goals',        () => import('/js/pages/goals.js'))
 router.register('reports',      () => import('/js/pages/reports.js'))
+router.register('calendar',     () => import('/js/pages/calendar.js'))
 router.register('annual',       () => import('/js/pages/annual.js'))
 router.register('charts',       () => import('/js/pages/charts.js'))
 router.register('categories',   () => import('/js/pages/categories.js'))

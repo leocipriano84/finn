@@ -121,43 +121,63 @@ async function deleteAccount(id, name) {
   } catch (e) { Toast.error(e.message) }
 }
 
+function bankLogoHTML(b, size = 24) {
+  if (!b || b.code === 'other' || b.code === '000') {
+    return `<span style="font-size:18px;line-height:${size}px">${b?.emoji || '🏦'}</span>`
+  }
+  const c = b.color || '#888'
+  const l = b.name.charAt(0).toUpperCase()
+  return `<img src="https://raw.githubusercontent.com/guibranco/BancosBrasileiros/main/src/imgs/${b.code}.png" width="${size}" height="${size}" style="border-radius:50%;object-fit:contain;background:#fff;flex-shrink:0;vertical-align:middle" onerror="window.__bankImgError(this)" data-bank-fallback-color="${c}" data-bank-fallback-letter="${l}" alt="${b.name}">`
+}
+
+
 function buildBankDropdownHTML(containerId, selectedCode = '') {
-  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦' }
+  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦', color: '#888' }
   const items = BANKS.map(b => `
-    <div class="bank-dd-item" data-code="${b.code}" onclick="window.__selectBank('${containerId}','${b.code}','${b.emoji}','${b.name.replace(/'/g,"\\'")}')">
-      <span>${b.emoji}</span><span>${b.name}</span>
+    <div class="bank-dd-item" data-name="${b.name.toLowerCase()}" onclick="window.__selectBank('${containerId}','${b.code}','${b.name.replace(/'/g,"\\'")}')">
+      ${bankLogoHTML(b)}<span>${b.name}</span>
     </div>`).join('')
   return `
     <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
       <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleBankDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <span id="${containerId}-emoji">${sel.emoji}</span>
+        <span id="${containerId}-icon" style="display:flex;align-items:center">${bankLogoHTML(sel)}</span>
         <span id="${containerId}-label" style="flex:1">${sel.name}</span>
         <span style="color:var(--color-text-muted);font-size:10px">▾</span>
       </div>
-      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.2)">
-        ${items}
+      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.2)">
+        <div style="padding:8px;border-bottom:1px solid var(--color-border)">
+          <input type="text" placeholder="Buscar banco..." class="form-control" style="padding:6px 10px;font-size:13px" oninput="window.__filterBankDD('${containerId}',this.value)" onclick="event.stopPropagation()">
+        </div>
+        <div id="${containerId}-list" style="max-height:180px;overflow-y:auto">${items}</div>
       </div>
       <input type="hidden" id="${containerId}" value="${selectedCode}">
     </div>
   `
 }
 
-// Helpers globais para o dropdown de banco (closures não funcionam em onclick inline)
+// Helpers globais para o dropdown de banco
 window.__toggleBankDD = function(id) {
   const dd = document.getElementById(`${id}-dropdown`)
   if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none'
 }
-window.__selectBank = function(id, code, emoji, name) {
+window.__filterBankDD = function(id, query) {
+  const list = document.getElementById(`${id}-list`)
+  if (!list) return
+  const q = query.toLowerCase()
+  list.querySelectorAll('.bank-dd-item').forEach(item => {
+    item.style.display = !q || item.dataset.name.includes(q) ? 'flex' : 'none'
+  })
+}
+window.__selectBank = function(id, code, name) {
+  const bank = BANKS.find(b => b.code === code)
   const hidden = document.getElementById(id)
-  const trigger = document.getElementById(`${id}-trigger`)
-  const emojiEl = document.getElementById(`${id}-emoji`)
+  const iconEl = document.getElementById(`${id}-icon`)
   const labelEl = document.getElementById(`${id}-label`)
   const dd = document.getElementById(`${id}-dropdown`)
   if (hidden) hidden.value = code
-  if (emojiEl) emojiEl.textContent = emoji
+  if (iconEl && bank) iconEl.innerHTML = bankLogoHTML(bank)
   if (labelEl) labelEl.textContent = name
   if (dd) dd.style.display = 'none'
-  // Auto-fill account name if empty
   const nameInput = document.getElementById('accName')
   if (nameInput && !nameInput.value && name !== 'Selecione...') nameInput.value = name
 }
@@ -165,10 +185,7 @@ window.__selectBank = function(id, code, emoji, name) {
 // Fechar dropdown ao clicar fora
 document.addEventListener('click', e => {
   if (!e.target.closest('.bank-dd')) {
-    document.querySelectorAll('[id$="-dropdown"].bank-dd-item ~ *').forEach(d => d.style.display = 'none')
-    document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
-      if (d.closest('.bank-dd')) d.style.display = 'none'
-    })
+    document.querySelectorAll('.bank-dd [id$="-dropdown"]').forEach(d => d.style.display = 'none')
   }
 })
 

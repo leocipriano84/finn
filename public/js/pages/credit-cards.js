@@ -4,29 +4,52 @@ import { fmt, BANKS, COLORS, date } from '../core/utils.js'
 import { Toast, Confirm, Loading } from '../core/notifications.js'
 
 const FLAG_META = [
-  { id: 'visa',       emoji: '🔵', name: 'Visa'            },
-  { id: 'mastercard', emoji: '🔴', name: 'Mastercard'      },
-  { id: 'elo',        emoji: '🟡', name: 'Elo'             },
-  { id: 'amex',       emoji: '💠', name: 'Amex'            },
-  { id: 'hipercard',  emoji: '❤️', name: 'Hipercard'       },
-  { id: 'other',      emoji: '💳', name: 'Outro'           },
+  { id: 'visa',       emoji: '🔵', name: 'Visa'      },
+  { id: 'mastercard', emoji: '🔴', name: 'Mastercard' },
+  { id: 'elo',        emoji: '🟡', name: 'Elo'        },
+  { id: 'amex',       emoji: '💠', name: 'Amex'       },
+  { id: 'hipercard',  emoji: '❤️', name: 'Hipercard'  },
+  { id: 'diners',     emoji: '🔷', name: 'Diners'     },
+  { id: 'other',      emoji: '💳', name: 'Outro'      },
 ]
 
+const FLAG_SVG = {
+  visa:       `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#1A1F71"/><text x="18" y="15" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="9" font-weight="bold" font-style="italic">VISA</text></svg>`,
+  mastercard: `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#1a1a1a"/><circle cx="14" cy="11" r="7" fill="#EB001B"/><circle cx="22" cy="11" r="7" fill="#F79E1B" opacity="0.85"/></svg>`,
+  elo:        `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#FFD700"/><text x="18" y="15" text-anchor="middle" fill="#003087" font-family="Arial,sans-serif" font-size="9" font-weight="bold">elo</text></svg>`,
+  amex:       `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#007BC1"/><text x="18" y="15" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="8" font-weight="bold">AMEX</text></svg>`,
+  hipercard:  `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#B31B1B"/><text x="18" y="15" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="7" font-weight="bold">Hipercard</text></svg>`,
+  diners:     `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#00416A"/><text x="18" y="15" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="8" font-weight="bold">Diners</text></svg>`,
+  other:      `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#555"/><text x="18" y="15" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="8">card</text></svg>`,
+}
+
+function cardBankLogoHTML(b, size = 24) {
+  if (!b || b.code === 'other' || b.code === '000') {
+    return `<span style="font-size:18px;line-height:${size}px">${b?.emoji || '🏦'}</span>`
+  }
+  const c = b.color || '#888'
+  const l = b.name.charAt(0).toUpperCase()
+  return `<img src="https://raw.githubusercontent.com/guibranco/BancosBrasileiros/main/src/imgs/${b.code}.png" width="${size}" height="${size}" style="border-radius:50%;object-fit:contain;background:#fff;flex-shrink:0;vertical-align:middle" onerror="window.__bankImgError(this)" data-bank-fallback-color="${c}" data-bank-fallback-letter="${l}" alt="${b.name}">`
+}
+
 function buildCardBankDropdownHTML(containerId, selectedCode = '') {
-  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦' }
+  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦', color: '#888' }
   const items = BANKS.map(b => `
-    <div class="bank-dd-item" onclick="window.__selectCardBank('${containerId}','${b.code}','${b.emoji}','${b.name.replace(/'/g,"\\'")}')">
-      <span>${b.emoji}</span><span>${b.name}</span>
+    <div class="bank-dd-item" data-name="${b.name.toLowerCase()}" onclick="window.__selectCardBank('${containerId}','${b.code}','${b.name.replace(/'/g,"\\'")}')">
+      ${cardBankLogoHTML(b)}<span>${b.name}</span>
     </div>`).join('')
   return `
     <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
       <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleCardDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
-        <span id="${containerId}-emoji">${sel.emoji}</span>
+        <span id="${containerId}-icon" style="display:flex;align-items:center">${cardBankLogoHTML(sel)}</span>
         <span id="${containerId}-label" style="flex:1">${sel.name}</span>
         <span style="color:var(--color-text-muted);font-size:10px">▾</span>
       </div>
-      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.2)">
-        ${items}
+      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.2)">
+        <div style="padding:8px;border-bottom:1px solid var(--color-border)">
+          <input type="text" placeholder="Buscar banco..." class="form-control" style="padding:6px 10px;font-size:13px" oninput="window.__filterCardDD('${containerId}',this.value)" onclick="event.stopPropagation()">
+        </div>
+        <div id="${containerId}-list" style="max-height:180px;overflow-y:auto">${items}</div>
       </div>
       <input type="hidden" id="${containerId}" value="${selectedCode}">
     </div>`
@@ -35,13 +58,13 @@ function buildCardBankDropdownHTML(containerId, selectedCode = '') {
 function buildCardFlagDropdownHTML(containerId, selectedId = 'other') {
   const sel = FLAG_META.find(f => f.id === selectedId) || FLAG_META[FLAG_META.length - 1]
   const items = FLAG_META.map(f => `
-    <div class="bank-dd-item" onclick="window.__selectCardFlag('${containerId}','${f.id}','${f.emoji}','${f.name.replace(/'/g,"\\'")}')">
-      <span>${f.emoji}</span><span>${f.name}</span>
+    <div class="bank-dd-item" onclick="window.__selectCardFlag('${containerId}','${f.id}','${f.name.replace(/'/g,"\\'")}')">
+      ${FLAG_SVG[f.id] || f.emoji}<span style="margin-left:8px">${f.name}</span>
     </div>`).join('')
   return `
     <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
       <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleCardDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
-        <span id="${containerId}-emoji">${sel.emoji}</span>
+        <span id="${containerId}-icon">${FLAG_SVG[sel.id] || sel.emoji}</span>
         <span id="${containerId}-label" style="flex:1">${sel.name}</span>
         <span style="color:var(--color-text-muted);font-size:10px">▾</span>
       </div>
@@ -56,23 +79,32 @@ window.__toggleCardDD = function(id) {
   const dd = document.getElementById(`${id}-dropdown`)
   if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none'
 }
-window.__selectCardBank = function(id, code, emoji, name) {
+window.__filterCardDD = function(id, query) {
+  const list = document.getElementById(`${id}-list`)
+  if (!list) return
+  const q = query.toLowerCase()
+  list.querySelectorAll('.bank-dd-item').forEach(item => {
+    item.style.display = !q || item.dataset.name.includes(q) ? 'flex' : 'none'
+  })
+}
+window.__selectCardBank = function(id, code, name) {
+  const bank = BANKS.find(b => b.code === code)
   const hidden = document.getElementById(id)
-  const emojiEl = document.getElementById(`${id}-emoji`)
+  const iconEl = document.getElementById(`${id}-icon`)
   const labelEl = document.getElementById(`${id}-label`)
   const dd = document.getElementById(`${id}-dropdown`)
   if (hidden) hidden.value = code
-  if (emojiEl) emojiEl.textContent = emoji
+  if (iconEl && bank) iconEl.innerHTML = cardBankLogoHTML(bank)
   if (labelEl) labelEl.textContent = name
   if (dd) dd.style.display = 'none'
 }
-window.__selectCardFlag = function(id, flagId, emoji, name) {
+window.__selectCardFlag = function(id, flagId, name) {
   const hidden = document.getElementById(id)
-  const emojiEl = document.getElementById(`${id}-emoji`)
+  const iconEl = document.getElementById(`${id}-icon`)
   const labelEl = document.getElementById(`${id}-label`)
   const dd = document.getElementById(`${id}-dropdown`)
   if (hidden) hidden.value = flagId
-  if (emojiEl) emojiEl.textContent = emoji
+  if (iconEl) iconEl.innerHTML = FLAG_SVG[flagId] || FLAG_META.find(f => f.id === flagId)?.emoji || '💳'
   if (labelEl) labelEl.textContent = name
   if (dd) dd.style.display = 'none'
 }
@@ -149,7 +181,11 @@ function cardWidget(card) {
           <div style="width:10px;height:10px;border-radius:50%;background:${card.color}"></div>
           <div>
             <div style="font-size:var(--text-base);font-weight:600">${card.name}</div>
-            <div style="font-size:var(--text-xs);color:var(--color-text-soft)">${(() => { const fm = FLAG_META.find(f => f.id === card.flag); return fm ? `${fm.emoji} ${fm.name}` : (card.flag?.toUpperCase() || 'CARTÃO') })()} ${card.bank_name ? '• ' + card.bank_name : ''}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+              ${FLAG_SVG[card.flag] || FLAG_META.find(f => f.id === card.flag)?.emoji || '💳'}
+              ${card.last_digits ? `<span style="font-size:var(--text-xs);color:var(--color-text-soft);font-family:var(--font-mono)">•••• ${card.last_digits}</span>` : ''}
+              ${card.bank_name ? `<span style="font-size:var(--text-xs);color:var(--color-text-soft)">· ${card.bank_name}</span>` : ''}
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:4px">
@@ -236,7 +272,11 @@ function openCardModal(id) {
           <div class="form-group"><label class="form-label">Bandeira</label>${cardFlagDropdown}</div>
           <div class="form-group"><label class="form-label">Banco</label>${cardBankDropdown}</div>
         </div>
-        <div class="form-group"><label class="form-label required">Limite</label><input id="cardLimit" class="form-control" type="number" step="0.01" value="${card?.limit_amount || ''}" placeholder="0,00"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label required">Limite</label><input id="cardLimit" class="form-control" type="number" step="0.01" value="${card?.limit_amount || ''}" placeholder="0,00"></div>
+          <div class="form-group"><label class="form-label">4 últimos dígitos</label><input id="cardLastDigits" class="form-control" maxlength="4" inputmode="numeric" value="${card?.last_digits || ''}" placeholder="0000"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Saldo de abertura da fatura</label><input id="cardOpeningBalance" class="form-control" type="number" step="0.01" value="${card?.opening_balance || ''}" placeholder="0,00"><div class="form-hint">Valor já lançado antes de começar a usar o app</div></div>
         <div class="form-row">
           <div class="form-group"><label class="form-label required">Fecha dia</label><select id="cardClosing" class="form-control">${days}</select></div>
           <div class="form-group"><label class="form-label required">Vence dia</label><select id="cardDue" class="form-control">${dueDays}</select></div>
@@ -286,6 +326,8 @@ function openCardModal(id) {
       dynamic_closing: overlay.querySelector('#cardDynamic')?.checked || false,
       due_on_business_day: overlay.querySelector('#cardBizDay')?.checked || false,
       is_main: overlay.querySelector('#cardMain')?.checked || false,
+      last_digits: overlay.querySelector('#cardLastDigits')?.value?.trim() || null,
+      opening_balance: Number(overlay.querySelector('#cardOpeningBalance')?.value) || 0,
     }
 
     Loading.btn(e.target, true)
