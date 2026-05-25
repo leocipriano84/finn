@@ -1,9 +1,81 @@
 import { endpoints } from '../core/api.js'
 import { store, cache } from '../core/store.js'
-import { fmt, BANKS, CARD_FLAGS, COLORS, date } from '../core/utils.js'
+import { fmt, BANKS, COLORS, date } from '../core/utils.js'
 import { Toast, Confirm, Loading } from '../core/notifications.js'
 
-const FLAG_ICONS = { visa: '💳', mastercard: '💳', elo: '💳', amex: '💳', hipercard: '💳', other: '💳' }
+const FLAG_META = [
+  { id: 'visa',       emoji: '🔵', name: 'Visa'            },
+  { id: 'mastercard', emoji: '🔴', name: 'Mastercard'      },
+  { id: 'elo',        emoji: '🟡', name: 'Elo'             },
+  { id: 'amex',       emoji: '💠', name: 'Amex'            },
+  { id: 'hipercard',  emoji: '❤️', name: 'Hipercard'       },
+  { id: 'other',      emoji: '💳', name: 'Outro'           },
+]
+
+function buildCardBankDropdownHTML(containerId, selectedCode = '') {
+  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦' }
+  const items = BANKS.map(b => `
+    <div class="bank-dd-item" onclick="window.__selectCardBank('${containerId}','${b.code}','${b.emoji}','${b.name.replace(/'/g,"\\'")}')">
+      <span>${b.emoji}</span><span>${b.name}</span>
+    </div>`).join('')
+  return `
+    <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
+      <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleCardDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+        <span id="${containerId}-emoji">${sel.emoji}</span>
+        <span id="${containerId}-label" style="flex:1">${sel.name}</span>
+        <span style="color:var(--color-text-muted);font-size:10px">▾</span>
+      </div>
+      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.2)">
+        ${items}
+      </div>
+      <input type="hidden" id="${containerId}" value="${selectedCode}">
+    </div>`
+}
+
+function buildCardFlagDropdownHTML(containerId, selectedId = 'other') {
+  const sel = FLAG_META.find(f => f.id === selectedId) || FLAG_META[FLAG_META.length - 1]
+  const items = FLAG_META.map(f => `
+    <div class="bank-dd-item" onclick="window.__selectCardFlag('${containerId}','${f.id}','${f.emoji}','${f.name.replace(/'/g,"\\'")}')">
+      <span>${f.emoji}</span><span>${f.name}</span>
+    </div>`).join('')
+  return `
+    <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
+      <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleCardDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+        <span id="${containerId}-emoji">${sel.emoji}</span>
+        <span id="${containerId}-label" style="flex:1">${sel.name}</span>
+        <span style="color:var(--color-text-muted);font-size:10px">▾</span>
+      </div>
+      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.2)">
+        ${items}
+      </div>
+      <input type="hidden" id="${containerId}" value="${selectedId}">
+    </div>`
+}
+
+window.__toggleCardDD = function(id) {
+  const dd = document.getElementById(`${id}-dropdown`)
+  if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none'
+}
+window.__selectCardBank = function(id, code, emoji, name) {
+  const hidden = document.getElementById(id)
+  const emojiEl = document.getElementById(`${id}-emoji`)
+  const labelEl = document.getElementById(`${id}-label`)
+  const dd = document.getElementById(`${id}-dropdown`)
+  if (hidden) hidden.value = code
+  if (emojiEl) emojiEl.textContent = emoji
+  if (labelEl) labelEl.textContent = name
+  if (dd) dd.style.display = 'none'
+}
+window.__selectCardFlag = function(id, flagId, emoji, name) {
+  const hidden = document.getElementById(id)
+  const emojiEl = document.getElementById(`${id}-emoji`)
+  const labelEl = document.getElementById(`${id}-label`)
+  const dd = document.getElementById(`${id}-dropdown`)
+  if (hidden) hidden.value = flagId
+  if (emojiEl) emojiEl.textContent = emoji
+  if (labelEl) labelEl.textContent = name
+  if (dd) dd.style.display = 'none'
+}
 
 export async function render(el) {
   el.innerHTML = `
@@ -77,7 +149,7 @@ function cardWidget(card) {
           <div style="width:10px;height:10px;border-radius:50%;background:${card.color}"></div>
           <div>
             <div style="font-size:var(--text-base);font-weight:600">${card.name}</div>
-            <div style="font-size:var(--text-xs);color:var(--color-text-soft)">${card.flag?.toUpperCase() || 'CARTÃO'} ${card.bank_name ? '• ' + card.bank_name : ''}</div>
+            <div style="font-size:var(--text-xs);color:var(--color-text-soft)">${(() => { const fm = FLAG_META.find(f => f.id === card.flag); return fm ? `${fm.emoji} ${fm.name}` : (card.flag?.toUpperCase() || 'CARTÃO') })()} ${card.bank_name ? '• ' + card.bank_name : ''}</div>
           </div>
         </div>
         <div style="display:flex;gap:4px">
@@ -144,8 +216,8 @@ function openCardModal(id) {
   const accounts = store.get('accounts') || []
   const card = id ? cards.find(c => c.id === id) : null
 
-  const bankOptions = BANKS.map(b => `<option value="${b.code}" ${card?.bank_code === b.code ? 'selected' : ''}>${b.emoji} ${b.name}</option>`).join('')
-  const flagOptions = CARD_FLAGS.map(f => `<option value="${f.id}" ${card?.flag === f.id ? 'selected' : ''}>${f.name}</option>`).join('')
+  const cardBankDropdown = buildCardBankDropdownHTML('cardBank', card?.bank_code || '')
+  const cardFlagDropdown = buildCardFlagDropdownHTML('cardFlag', card?.flag || 'other')
   const accOptions = accounts.map(a => `<option value="${a.id}" ${card?.account_id === a.id ? 'selected' : ''}>${a.name}</option>`).join('')
   const days = Array.from({length:31},(_,i)=>`<option value="${i+1}" ${(card?.closing_day || 10) === i+1 ? 'selected' : ''}>${i+1}</option>`).join('')
   const dueDays = Array.from({length:31},(_,i)=>`<option value="${i+1}" ${(card?.due_day || 20) === i+1 ? 'selected' : ''}>${i+1}</option>`).join('')
@@ -161,8 +233,8 @@ function openCardModal(id) {
       <div class="modal-body">
         <div class="form-group"><label class="form-label required">Nome do cartão</label><input id="cardName" class="form-control" value="${card?.name || ''}" placeholder="Ex: Nubank Gold"></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Bandeira</label><select id="cardFlag" class="form-control">${flagOptions}</select></div>
-          <div class="form-group"><label class="form-label">Banco</label><select id="cardBank" class="form-control"><option value="">Selecione...</option>${bankOptions}</select></div>
+          <div class="form-group"><label class="form-label">Bandeira</label>${cardFlagDropdown}</div>
+          <div class="form-group"><label class="form-label">Banco</label>${cardBankDropdown}</div>
         </div>
         <div class="form-group"><label class="form-label required">Limite</label><input id="cardLimit" class="form-control" type="number" step="0.01" value="${card?.limit_amount || ''}" placeholder="0,00"></div>
         <div class="form-row">
@@ -186,7 +258,12 @@ function openCardModal(id) {
   const close = () => { overlay.classList.remove('open'); setTimeout(() => overlay.remove(), 300) }
   overlay.querySelector('#cardModalClose')?.addEventListener('click', close)
   overlay.querySelector('#cardModalCancel')?.addEventListener('click', close)
-  overlay.addEventListener('click', e => { if (e.target === overlay) close() })
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { close(); return }
+    if (!e.target.closest('.bank-dd')) {
+      overlay.querySelectorAll('.bank-dd [id$="-dropdown"]').forEach(d => d.style.display = 'none')
+    }
+  })
 
   overlay.querySelector('#cardModalSave')?.addEventListener('click', async (e) => {
     const name = overlay.querySelector('#cardName')?.value?.trim()

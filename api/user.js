@@ -91,15 +91,19 @@ export default async function handler(req, res) {
     }
 
     if (action === 'clear-data') {
-      const tables = ['transactions', 'accounts', 'credit_cards', 'categories', 'goals', 'budgets', 'coach_messages', 'card_invoices']
+      // Delete children before parents to avoid FK violations
+      const tables = ['transactions', 'card_invoices', 'budgets', 'goals', 'coach_messages', 'categories', 'credit_cards', 'accounts']
       for (const table of tables) {
-        await supabase.from(table).delete().eq('user_id', userId).catch(() => {})
+        try {
+          const { error } = await supabase.from(table).delete().eq('user_id', userId)
+          if (error) console.error(`[clear-data] ${table}:`, error.message)
+        } catch (e) { console.error(`[clear-data] ${table} exception:`, e.message) }
       }
       return res.status(200).json({ ok: true })
     }
 
     if (action === 'delete-account') {
-      const tables = ['transactions', 'accounts', 'credit_cards', 'categories', 'goals', 'budgets', 'coach_messages', 'card_invoices']
+      const tables = ['transactions', 'card_invoices', 'budgets', 'goals', 'coach_messages', 'categories', 'credit_cards', 'accounts']
       for (const table of tables) {
         await supabase.from(table).delete().eq('user_id', userId).catch(() => {})
       }
