@@ -141,6 +141,10 @@ Responda em português, seja conciso (máx 3 parágrafos), prático e amigável.
     } catch (e) { return res.status(500).json({ error: e.message }) }
   }
 
+  if (req.method === 'GET' && action === 'test') {
+    return res.status(200).json({ status: 'ok', model: 'claude-haiku-4-5-20251001', key_configured: !!process.env.ANTHROPIC_API_KEY })
+  }
+
   if (req.method === 'GET') {
     if (action === 'profile') {
       const ctx = await getFinancialContext(userId)

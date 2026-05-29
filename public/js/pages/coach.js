@@ -4,11 +4,11 @@ import { fmt } from '../core/utils.js'
 import { Toast, Loading } from '../core/notifications.js'
 
 const SUGGESTIONS = [
-  'Como estou esse mês?',
+  'Como estão meus gastos esse mês?',
   'Onde posso economizar?',
-  'Minha saúde financeira',
-  'Dicas para quitar dívidas',
+  'Estou no caminho certo?',
   'Como montar uma reserva?',
+  'Dicas para quitar dívidas',
 ]
 
 let history = []

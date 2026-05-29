@@ -672,11 +672,21 @@ function attachModalEvents(overlay, existing) {
   overlay.querySelector('#modalTxCancel')?.addEventListener('click', close)
   overlay.addEventListener('click', e => { if (e.target === overlay) close() })
 
-  // Toggle tipo
+  // Toggle tipo — atualiza categorias ao trocar
   overlay.querySelectorAll('.modal-type-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       overlay.querySelectorAll('.modal-type-tab').forEach(t => t.classList.remove('active'))
       tab.classList.add('active')
+      const allCats = store.get('categories') || []
+      const catSel = overlay.querySelector('#txCategory')
+      if (catSel && allCats.length) {
+        const isIncome = tab.dataset.type === 'income'
+        const cats = allCats.filter(c =>
+          (isIncome ? (c.type === 'income' || c.type === 'both') : (c.type === 'expense' || c.type === 'both')) && !c.parent_id
+        )
+        catSel.innerHTML = '<option value="">Sem categoria</option>' +
+          cats.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('')
+      }
     })
   })
 
@@ -836,7 +846,11 @@ function rebuildModalSelects(overlay, accounts, categories, creditCards = [], tx
   }
   const catSel = overlay.querySelector('#txCategory')
   if (catSel) {
-    const cats = categories.filter(c => c.type !== 'income' && !c.parent_id)
+    const activeTab = overlay.querySelector('.modal-type-tab.active')
+    const isIncome = activeTab?.dataset.type === 'income'
+    const cats = categories.filter(c =>
+      (isIncome ? (c.type === 'income' || c.type === 'both') : (c.type === 'expense' || c.type === 'both')) && !c.parent_id
+    )
     catSel.innerHTML = '<option value="">Sem categoria</option>' +
       cats.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('')
     if (tx?.category_id) {
