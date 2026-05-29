@@ -152,7 +152,7 @@ function renderDonut(canvasId, data) {
   ctx.fill()
 }
 
-function renderLineChart(canvasId, daily, color = '#00F5A0') {
+function renderLineChart(canvasId, daily, color = '#00C853') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !daily?.length) return
   // Sincroniza dimensão real do canvas com o tamanho exibido (evita bloco colorido)
@@ -177,7 +177,7 @@ function renderLineChart(canvasId, daily, color = '#00F5A0') {
   ctx.stroke()
 }
 
-function renderBarChart(canvasId, monthly, color = '#00F5A0') {
+function renderBarChart(canvasId, monthly, color = '#00C853') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !monthly?.length) return
   if (canvas.offsetWidth > 0) canvas.width = canvas.offsetWidth

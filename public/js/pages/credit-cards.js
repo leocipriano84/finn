@@ -25,11 +25,13 @@ const FLAG_SVG = {
 
 function cardBankLogoHTML(b, size = 24) {
   if (!b || b.code === 'other' || b.code === '000') {
-    return `<span style="font-size:18px;line-height:${size}px">${b?.emoji || '🏦'}</span>`
+    return `<span style="font-size:${Math.round(size * 0.7)}px;line-height:${size}px">${b?.emoji || '🏦'}</span>`
   }
-  const c = b.color || '#888'
-  const l = b.name.charAt(0).toUpperCase()
-  return `<img src="https://raw.githubusercontent.com/guibranco/BancosBrasileiros/main/src/imgs/${b.code}.png" width="${size}" height="${size}" style="border-radius:50%;object-fit:contain;background:#fff;flex-shrink:0;vertical-align:middle" onerror="window.__bankImgError(this)" data-bank-fallback-color="${c}" data-bank-fallback-letter="${l}" alt="${b.name}">`
+  const color = b.color || '#6B7280'
+  const letter = (b.name || '?').charAt(0).toUpperCase()
+  const lightBg = ['#F8D000','#FFD93D','#FDC300','#F5C400','#F9CC1B'].includes(color)
+  const textColor = lightBg ? '#000' : '#fff'
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:${color};color:${textColor};font-weight:700;font-size:${Math.round(size * 0.42)}px;font-family:sans-serif;flex-shrink:0;letter-spacing:-0.5px">${letter}</span>`
 }
 
 function buildCardBankDropdownHTML(containerId, selectedCode = '') {
@@ -134,6 +136,9 @@ export async function render(el) {
   })
 
   await loadCards()
+  // Expõe loadCards globalmente para que o modal de transação possa recarregar os cartões após salvar
+  window.__reloadCards = loadCards
+  el.addEventListener('__cleanup', () => { window.__reloadCards = null }, { once: true })
 }
 
 async function loadCards() {

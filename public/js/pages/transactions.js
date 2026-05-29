@@ -29,6 +29,12 @@ function getRouteParams() {
 }
 
 function buildPage() {
+  if (!document.getElementById('tx-tab-style')) {
+    const s = document.createElement('style')
+    s.id = 'tx-tab-style'
+    s.textContent = `.tab[data-filter-type="expense"].active{color:var(--color-expense)!important;border-bottom-color:var(--color-expense)!important}.tab[data-filter-type="income"].active{color:var(--color-income)!important;border-bottom-color:var(--color-income)!important}`
+    document.head.appendChild(s)
+  }
   return `
     <div style="display:flex;flex-direction:column;height:100%">
       <!-- Header da página -->
@@ -506,6 +512,15 @@ export async function openTransactionModal(opts = {}) {
         if (match && catSel) catSel.value = match.id
       }
     } catch {}
+  } else if (existing?.category_id) {
+    // Categorias já estavam em cache — forçar seleção após render
+    requestAnimationFrame(() => {
+      const catSel = overlay.querySelector('#txCategory')
+      if (catSel && existing.category_id) {
+        catSel.value = existing.category_id
+        catSel.dispatchEvent(new Event('change'))
+      }
+    })
   }
 
   attachModalEvents(overlay, existing)
@@ -854,6 +869,8 @@ function attachModalEvents(overlay, existing) {
       cache.clear()
       close()
       loadTransactions()
+      // Recarregar cartões se transação é de cartão (atualiza fatura no widget)
+      if (payload.credit_card_id) window.__reloadCards?.()
       // Mostra saldo da conta se preferência ativa
       const prefs = store.get('preferences') || {}
       if (prefs.show_balance_on_save && payload.account_id) {
