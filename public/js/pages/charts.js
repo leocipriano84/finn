@@ -180,6 +180,14 @@ function renderLineChart(canvasId, daily, color = '#00C853') {
 function renderBarChart(canvasId, monthly, color = '#00C853') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !monthly?.length) return
+  const container = canvas.parentElement
+  if (container) {
+    container.style.position = 'relative'
+    container.style.height = '220px'
+    container.style.minHeight = '220px'
+    container.style.overflow = 'hidden'
+    container.style.background = 'transparent'
+  }
   if (canvas.offsetWidth > 0) canvas.width = canvas.offsetWidth
   if (canvas.offsetHeight > 0) canvas.height = canvas.offsetHeight
   const ctx = canvas.getContext('2d')

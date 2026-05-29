@@ -145,12 +145,23 @@ function showDayDetail(day, year, month, txs) {
   const detail = document.getElementById('calDayDetail')
   if (!detail) return
 
+  const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+
   if (!txs.length) {
-    detail.innerHTML = `<div style="text-align:center;color:var(--color-text-soft);font-size:14px;padding:16px">Sem lançamentos em ${day}/${String(month).padStart(2,'0')}</div>`
+    detail.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">${fmt.date(dateStr, 'medium')}</span>
+          <button class="btn btn-primary btn-sm" id="calNewTxBtn">+ Novo lançamento</button>
+        </div>
+        <div style="text-align:center;color:var(--color-text-soft);font-size:var(--text-sm);padding:20px 16px">Sem lançamentos neste dia</div>
+      </div>`
+    detail.querySelector('#calNewTxBtn')?.addEventListener('click', () => {
+      window.openNewTransaction?.({ due_date: dateStr })
+    })
     return
   }
 
-  const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
   const totalIncome = txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
   const totalExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
 
@@ -158,9 +169,12 @@ function showDayDetail(day, year, month, txs) {
     <div class="card">
       <div class="card-header">
         <span class="card-title">${fmt.date(dateStr, 'medium')}</span>
-        <div style="display:flex;gap:12px;font-size:var(--text-xs)">
-          ${totalIncome > 0 ? `<span style="color:var(--color-income)">+${fmt.currency(totalIncome)}</span>` : ''}
-          ${totalExpense > 0 ? `<span style="color:var(--color-expense)">-${fmt.currency(totalExpense)}</span>` : ''}
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;gap:8px;font-size:var(--text-xs)">
+            ${totalIncome > 0 ? `<span style="color:var(--color-income)">+${fmt.currency(totalIncome)}</span>` : ''}
+            ${totalExpense > 0 ? `<span style="color:var(--color-expense)">-${fmt.currency(totalExpense)}</span>` : ''}
+          </div>
+          <button class="btn btn-primary btn-sm" id="calNewTxBtn">+</button>
         </div>
       </div>
       <div class="transaction-list">
@@ -182,4 +196,7 @@ function showDayDetail(day, year, month, txs) {
       </div>
     </div>
   `
+  detail.querySelector('#calNewTxBtn')?.addEventListener('click', () => {
+    window.openNewTransaction?.({ due_date: dateStr })
+  })
 }

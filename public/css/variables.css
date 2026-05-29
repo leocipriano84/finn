@@ -108,13 +108,13 @@
    CORES DE AÇÃO (invariantes de tema)
    ================================================ */
 :root {
-  --color-green: #00F5A0;
-  --color-green-dim: rgba(0, 245, 160, 0.12);
-  --color-green-hover: rgba(0, 245, 160, 0.2);
+  --color-green: #00C853;
+  --color-green-dim: rgba(0, 200, 83, 0.12);
+  --color-green-hover: rgba(0, 200, 83, 0.2);
   --color-blue: #00C9FF;
   --color-blue-dim: rgba(0, 201, 255, 0.12);
-  --color-red: #FF6B6B;
-  --color-red-dim: rgba(255, 107, 107, 0.12);
+  --color-red: #D50000;
+  --color-red-dim: rgba(213, 0, 0, 0.12);
   --color-income: #00C853;
   --color-income-dim: rgba(0, 200, 83, 0.12);
   --color-expense: #D50000;
@@ -127,7 +127,7 @@
   --color-orange-dim: rgba(255, 154, 60, 0.12);
 
   /* Sombras coloridas */
-  --shadow-green: 0 0 20px rgba(0, 245, 160, 0.15);
+  --shadow-green: 0 0 20px rgba(0, 200, 83, 0.15);
   --shadow-blue: 0 0 20px rgba(0, 201, 255, 0.15);
 
   /* Fontes */

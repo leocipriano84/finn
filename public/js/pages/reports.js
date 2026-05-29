@@ -16,7 +16,9 @@ export async function render(el) {
     s.textContent = `
       .r-chip{padding:8px 18px;border-radius:20px;border:1.5px solid var(--color-border);background:transparent;color:var(--color-text-soft);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap}
       .r-chip.active{background:var(--color-green);color:#050508;border-color:var(--color-green);font-weight:600}
-      .r-chip:hover:not(.active){border-color:var(--color-text-muted);color:var(--color-text)}
+      .r-chip:hover:not(.active){border-color:var(--color-text-muted);color:var(--color-text);background:var(--color-card-hover)}
+      [data-report-type="expense"].active{background:#D50000!important;color:#fff!important;border-color:#D50000!important}
+      [data-report-type="income"].active{background:#00C853!important;color:#050508!important;border-color:#00C853!important}
       .r-filter-section{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
       .r-filter-label{font-size:11px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;min-width:90px}
       .r-date-input{padding:5px 10px;border-radius:8px;border:1px solid var(--color-border);background:var(--color-card);color:var(--color-text);font-size:13px;outline:none}

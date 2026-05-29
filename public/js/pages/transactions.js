@@ -29,10 +29,10 @@ function getRouteParams() {
 }
 
 function buildPage() {
-  if (!document.getElementById('tx-tab-style')) {
+  if (!document.getElementById('tx-tabs-fix')) {
     const s = document.createElement('style')
-    s.id = 'tx-tab-style'
-    s.textContent = `.tab[data-filter-type="expense"].active{color:var(--color-expense)!important;border-bottom-color:var(--color-expense)!important}.tab[data-filter-type="income"].active{color:var(--color-income)!important;border-bottom-color:var(--color-income)!important}`
+    s.id = 'tx-tabs-fix'
+    s.textContent = `[data-filter-type="expense"].active,.tab-expense.active{color:#D50000!important;border-bottom-color:#D50000!important}[data-filter-type="income"].active,.tab-income.active{color:#00C853!important;border-bottom-color:#00C853!important}`
     document.head.appendChild(s)
   }
   return `
@@ -455,7 +455,7 @@ function renderSummaryBar(el, summary, type) {
 
 // ===== MODAL DE NOVO/EDITAR LANÇAMENTO =====
 export async function openTransactionModal(opts = {}) {
-  const { type = 'expense', id, prefill, credit_card_id: presetCardId } = opts
+  const { type = 'expense', id, prefill, credit_card_id: presetCardId, due_date: presetDate } = opts
   let existing = null
 
   if (id) {
@@ -471,7 +471,7 @@ export async function openTransactionModal(opts = {}) {
     existing = { type: type || 'expense_card', credit_card_id: presetCardId }
   }
 
-  const txBase = existing || { type }
+  const txBase = existing || { type, ...(presetDate ? { due_date: presetDate } : {}) }
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
   overlay.innerHTML = buildTransactionModal(txBase, accounts, categories, creditCards)
@@ -513,14 +513,14 @@ export async function openTransactionModal(opts = {}) {
       }
     } catch {}
   } else if (existing?.category_id) {
-    // Categorias já estavam em cache — forçar seleção após render
-    requestAnimationFrame(() => {
+    // Categorias já estavam em cache — forçar seleção após render completo
+    setTimeout(() => {
       const catSel = overlay.querySelector('#txCategory')
       if (catSel && existing.category_id) {
         catSel.value = existing.category_id
         catSel.dispatchEvent(new Event('change'))
       }
-    })
+    }, 50)
   }
 
   attachModalEvents(overlay, existing)
