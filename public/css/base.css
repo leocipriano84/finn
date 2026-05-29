@@ -133,7 +133,7 @@ h1, h2, h3, h4, h5, h6 {
 .opacity-0  { opacity: 0; }
 
 /* Number formatting: valores monetários */
-.value-positive { color: var(--color-green); }
-.value-negative { color: var(--color-red); }
+.value-positive { color: var(--color-income); }
+.value-negative { color: var(--color-expense); }
 .value-neutral  { color: var(--color-text); }
 .value-pending  { color: var(--color-yellow); opacity: 0.7; }

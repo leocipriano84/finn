@@ -104,7 +104,7 @@ function renderCalendar(el, year, month, txs) {
     const isToday = d === todayDay
 
     const dots = dayTxs.slice(0, 4).map(t =>
-      `<span class="cal-dot" style="background:${t.type === 'income' ? 'var(--color-green)' : 'var(--color-red)'}"></span>`
+      `<span class="cal-dot" style="background:${t.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)'}"></span>`
     ).join('')
 
     cells += `
@@ -112,8 +112,8 @@ function renderCalendar(el, year, month, txs) {
         <div class="cal-day-num">${d}</div>
         ${dayTxs.length ? `
           <div class="cal-dots">${dots}${dayTxs.length > 4 ? `<span class="cal-more">+${dayTxs.length - 4}</span>` : ''}</div>
-          ${income > 0 ? `<div class="cal-amt" style="color:var(--color-green)">+${fmt.currency(income, true)}</div>` : ''}
-          ${expense > 0 ? `<div class="cal-amt" style="color:var(--color-red)">-${fmt.currency(expense, true)}</div>` : ''}
+          ${income > 0 ? `<div class="cal-amt" style="color:var(--color-income)">+${fmt.currency(income, true)}</div>` : ''}
+          ${expense > 0 ? `<div class="cal-amt" style="color:var(--color-expense)">-${fmt.currency(expense, true)}</div>` : ''}
         ` : ''}
       </div>
     `
@@ -159,8 +159,8 @@ function showDayDetail(day, year, month, txs) {
       <div class="card-header">
         <span class="card-title">${fmt.date(dateStr, 'medium')}</span>
         <div style="display:flex;gap:12px;font-size:var(--text-xs)">
-          ${totalIncome > 0 ? `<span style="color:var(--color-green)">+${fmt.currency(totalIncome)}</span>` : ''}
-          ${totalExpense > 0 ? `<span style="color:var(--color-red)">-${fmt.currency(totalExpense)}</span>` : ''}
+          ${totalIncome > 0 ? `<span style="color:var(--color-income)">+${fmt.currency(totalIncome)}</span>` : ''}
+          ${totalExpense > 0 ? `<span style="color:var(--color-expense)">-${fmt.currency(totalExpense)}</span>` : ''}
         </div>
       </div>
       <div class="transaction-list">

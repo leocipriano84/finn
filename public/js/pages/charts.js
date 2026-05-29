@@ -108,8 +108,8 @@ function renderCharts(el, data, evolution, type) {
       <!-- Últimos 6 meses -->
       <div class="card" style="grid-column:1/-1">
         <div class="card-header"><span class="card-title">Últimos 6 meses</span></div>
-        <div style="height:140px;overflow:hidden;position:relative">
-          <canvas id="monthlyChart" width="600" height="140" style="width:100%;height:100%"></canvas>
+        <div style="height:220px;overflow:hidden;position:relative;min-height:220px">
+          <canvas id="monthlyChart" width="600" height="220" style="width:100%;height:100%;display:block"></canvas>
         </div>
       </div>
 
@@ -117,8 +117,8 @@ function renderCharts(el, data, evolution, type) {
       <!-- Receitas x Despesas (anual) -->
       <div class="card" style="grid-column:1/-1">
         <div class="card-header"><span class="card-title">Receitas × Despesas ${new Date().getFullYear()}</span></div>
-        <div style="height:160px;overflow:hidden;position:relative">
-          <canvas id="evolutionChart" width="600" height="160" style="width:100%;height:100%"></canvas>
+        <div style="height:220px;overflow:hidden;position:relative;min-height:220px">
+          <canvas id="evolutionChart" width="600" height="220" style="width:100%;height:100%;display:block"></canvas>
         </div>
       </div>
       ` : ''}
@@ -127,9 +127,9 @@ function renderCharts(el, data, evolution, type) {
 
   // Render charts after DOM layout is flushed (double rAF avoids blank canvas)
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    renderLineChart('dailyChart', daily, type === 'income' ? '#00F5A0' : '#FF6B6B')
+    renderLineChart('dailyChart', daily, type === 'income' ? '#00C853' : '#D50000')
     renderDonut('catDonut', categories.slice(0,5))
-    renderBarChart('monthlyChart', monthly, type === 'income' ? '#00F5A0' : '#FF6B6B')
+    renderBarChart('monthlyChart', monthly, type === 'income' ? '#00C853' : '#D50000')
     if (evolution) renderDualLineChart('evolutionChart', evolution)
   }))
 }
@@ -214,8 +214,8 @@ function renderDualLineChart(canvasId, data) {
     pts.forEach(p => { ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill() })
   }
   ctx.clearRect(0,0,w,h)
-  drawLine('income', '#00F5A0')
-  drawLine('expense', '#FF6B6B')
+  drawLine('income', '#00C853')
+  drawLine('expense', '#D50000')
   data.forEach((d, i) => {
     const x = 10 + (i/(data.length-1))*(w-20)
     ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'

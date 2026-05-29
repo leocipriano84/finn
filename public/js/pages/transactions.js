@@ -105,6 +105,32 @@ async function loadTransactions() {
     ])
     const txs = result.data || []
     cachedTransactions = txs
+
+    // Projeção de recorrentes para meses futuros
+    const currentMonth = date.currentMonth()
+    if (month > currentMonth) {
+      try {
+        const baseResult = await endpoints.transactions({ month: currentMonth, limit: 200 })
+        const RECURRENT = new Set(['daily','weekly','biweekly','monthly','fixed_monthly','bimonthly','quarterly','semiannual','yearly','fixed_yearly'])
+        const baseTxs = (baseResult.data || []).filter(t => RECURRENT.has(t.recurrence))
+        const [viewYear, viewMonthNum] = month.split('-').map(Number)
+
+        for (const baseTx of baseTxs) {
+          const descLower = (baseTx.description || '').toLowerCase()
+          const alreadyExists = txs.some(t =>
+            t.description?.toLowerCase() === descLower && t.type === baseTx.type
+          )
+          if (!alreadyExists) {
+            const baseDay = (baseTx.due_date || baseTx.date || '').split('-')[2] || '01'
+            const monthEnd = new Date(viewYear, viewMonthNum, 0).getDate()
+            const projDay = String(Math.min(Number(baseDay), monthEnd)).padStart(2, '0')
+            const projDate = `${viewYear}-${String(viewMonthNum).padStart(2,'0')}-${projDay}`
+            txs.push({ ...baseTx, id: `proj_${baseTx.id}`, due_date: projDate, date: projDate, status: 'projected', _isProjected: true })
+          }
+        }
+      } catch {}
+    }
+
     renderList(listEl, txs)
     renderSummaryBar(barEl, summary, currentType)
   } catch (e) {
@@ -156,6 +182,12 @@ function renderList(el, txs) {
     item.addEventListener('click', async (e) => {
       if (e.target.closest('[data-action]')) return
       const id = item.dataset.txId
+      if (id.startsWith('proj_')) {
+        // Transação projetada — abrir modal de criação pré-preenchida (sem ID)
+        const proj = cachedTransactions.find(t => t.id === id)
+        if (proj) openTransactionModal({ type: proj.type, prefill: { amount: proj.amount, description: proj.description } })
+        return
+      }
       openTransactionModal({ id })
     })
     item.querySelectorAll('[data-action]').forEach(btn => {
@@ -170,6 +202,7 @@ function renderList(el, txs) {
 function transactionItem(t) {
   const isExpense = t.type === 'expense' || t.type === 'expense_card'
   const isIncome  = t.type === 'income'
+  const isProjected = t._isProjected === true
   const isPending = t.status === 'pending'
   const today = date.today()
   const txDate = t.due_date || t.date
@@ -178,36 +211,38 @@ function transactionItem(t) {
 
   const cat = t.categories || null
   const acc = t.accounts || t.credit_cards || null
-  const statusIcon = isPending ? (isOverdue ? '🔴' : '⏰') : '✅'
+  const statusIcon = isProjected ? '🔮' : (isPending ? (isOverdue ? '🔴' : '⏰') : '✅')
 
   const installText = t.installment_total > 1 ? ` ${t.installment_current}/${t.installment_total}` : ''
   const FIXED_REC = new Set(['monthly','fixed_monthly','weekly','fixed_weekly','yearly','fixed_yearly','daily','biweekly','bimonthly','quarterly','semiannual'])
   const recText = FIXED_REC.has(t.recurrence) ? ' • Recorrente' : ''
 
   return `
-    <div class="transaction-item${isOverdue ? ' overdue' : isDueSoon ? ' due-soon' : ''}" data-tx-id="${t.id}" data-tx-rec-group="${t.recurrence_group_id || ''}">
-      <div class="transaction-icon" style="background:${cat?.color ? cat.color + '22' : (isIncome ? 'var(--color-green-dim)' : 'var(--color-red-dim)')}">
+    <div class="transaction-item${isOverdue ? ' overdue' : isDueSoon ? ' due-soon' : ''}" data-tx-id="${t.id}" data-tx-rec-group="${t.recurrence_group_id || ''}" style="${isProjected ? 'opacity:0.65;' : ''}">
+      <div class="transaction-icon" style="background:${cat?.color ? cat.color + '22' : (isIncome ? 'var(--color-income-dim)' : 'var(--color-expense-dim)')}">
         ${cat?.icon || (isIncome ? '💰' : '💸')}
       </div>
       <div class="transaction-info">
         <div class="transaction-desc">${t.description}${installText}</div>
         <div class="transaction-sub">
           ${statusIcon}
+          ${isProjected ? `<span class="badge badge-yellow" style="font-size:10px;padding:1px 6px;margin-left:2px">Previsto</span>` : ''}
           ${acc?.name ? `<span>${acc.name}</span>` : ''}
           ${cat?.name ? `<span>${cat.name}</span>` : ''}
           ${recText ? `<span style="color:var(--color-blue)">${recText}</span>` : ''}
         </div>
       </div>
       <div class="transaction-meta">
-        <div class="transaction-amount ${isIncome ? 'value-positive' : isPending ? 'value-pending' : 'value-negative'}">
+        <div class="transaction-amount ${isIncome ? 'value-positive' : (isPending || isProjected) ? 'value-pending' : 'value-negative'}">
           ${isIncome ? '+' : '-'}${fmt.currency(t.amount)}
         </div>
         <div class="transaction-date">${fmt.date(txDate, 'short')}</div>
+        ${!isProjected ? `
         <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px">
           ${isPending ? `<button class="btn-icon btn" style="padding:2px 5px;font-size:12px" data-action="confirm" title="Efetivar">✅</button>` : ''}
           ${(isPending && t.recurrence_group_id) ? `<button class="btn-icon btn" style="padding:2px 5px;font-size:12px" data-action="confirm-batch" title="Efetivar parcelas em lote">✅✅</button>` : ''}
           <button class="btn-icon btn" style="padding:2px 5px;font-size:12px" data-action="delete" title="Excluir">🗑️</button>
-        </div>
+        </div>` : ''}
       </div>
     </div>
   `
@@ -510,8 +545,8 @@ function buildTransactionModal(tx, accounts, categories, creditCards = []) {
     expense_card: 'Nova Despesa — Cartão de crédito',
   }
 
-  const expenseCategories = (categories || []).filter(c => c.type === 'expense' || c.type === 'both')
-  const incomeCategories  = (categories || []).filter(c => c.type === 'income' || c.type === 'both')
+  const expenseCategories = (categories || []).filter(c => (c.type === 'expense' || c.type === 'both') && !c.parent_id)
+  const incomeCategories  = (categories || []).filter(c => (c.type === 'income'  || c.type === 'both') && !c.parent_id)
   const cats = txType === 'income' ? incomeCategories : expenseCategories
 
   const accountSelectOptions = buildAccountSelectOptions(accounts, creditCards, tx)
@@ -798,7 +833,7 @@ function attachModalEvents(overlay, existing) {
       installment_total:   Number(overlay.querySelector('#txInstTotal')?.value) || 1,
       recurrence_interval: recurrence === 'custom' ? Number(overlay.querySelector('#txCustomInterval')?.value) || 1 : null,
       recurrence_unit:     recurrence === 'custom' ? (overlay.querySelector('#txCustomUnit')?.value || 'months') : null,
-      category_id: overlay.querySelector('#txSubcategory')?.value || overlay.querySelector('#txCategory')?.value || null,
+      category_id: (overlay.querySelector('#txSubcategory')?.value || overlay.querySelector('#txCategory')?.value || null) || null,
       account_id,
       credit_card_id,
       notes:       overlay.querySelector('#txNotes')?.value    || null,

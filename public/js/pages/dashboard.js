@@ -308,14 +308,14 @@ function renderLineChart(canvasId, daily) {
   ctx.lineTo(pts[pts.length-1].x, h)
   ctx.closePath()
   const grad = ctx.createLinearGradient(0, 0, 0, h)
-  grad.addColorStop(0, 'rgba(0,245,160,0.3)')
-  grad.addColorStop(1, 'rgba(0,245,160,0)')
+  grad.addColorStop(0, 'rgba(0,200,83,0.3)')
+  grad.addColorStop(1, 'rgba(0,200,83,0)')
   ctx.fillStyle = grad
   ctx.fill()
 
   // Line
   ctx.beginPath()
-  ctx.strokeStyle = '#00F5A0'
+  ctx.strokeStyle = '#00C853'
   ctx.lineWidth = 2
   ctx.lineJoin = 'round'
   pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
@@ -325,7 +325,7 @@ function renderLineChart(canvasId, daily) {
   pts.forEach(p => {
     ctx.beginPath()
     ctx.arc(p.x, p.y, 3, 0, Math.PI * 2)
-    ctx.fillStyle = '#00F5A0'
+    ctx.fillStyle = '#00C853'
     ctx.fill()
   })
 }
@@ -335,7 +335,7 @@ function renderRecurrenceDonut(canvasId, rec) {
   const data = [
     { total: rec.fixed || 0,       color: '#00C9FF' },
     { total: rec.installment || 0, color: '#FFD93D' },
-    { total: rec.variable || 0,    color: '#FF6B6B' },
+    { total: rec.variable || 0,    color: '#D50000' },
   ].filter(d => d.total > 0)
   renderDonutChart(canvasId, data)
 }

@@ -8,7 +8,7 @@ export const VoiceInput = {
     this.recognition = new SR()
     this.recognition.lang = 'pt-BR'
     this.recognition.continuous = false
-    this.recognition.interimResults = false
+    this.recognition.interimResults = true
     this.supported = true
     return true
   },
@@ -16,12 +16,29 @@ export const VoiceInput = {
   start() {
     if (!this.recognition) return Promise.reject(new Error('Voz não suportada'))
     return new Promise((resolve, reject) => {
-      this.recognition.onresult = (e) => {
-        const text = e.results[0][0].transcript
-        resolve(text)
+      let finalText = ''
+      let resolved = false
+
+      const done = (text, err) => {
+        if (resolved) return
+        resolved = true
+        clearTimeout(timer)
+        if (text) resolve(text)
+        else reject(err || new Error('Nenhum áudio detectado'))
       }
-      this.recognition.onerror = (e) => reject(new Error(e.error))
-      this.recognition.onend = () => {}
+
+      const timer = setTimeout(() => {
+        this.recognition.stop()
+        done(finalText, new Error('Tempo esgotado — tente novamente'))
+      }, 10000)
+
+      this.recognition.onresult = (e) => {
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript
+        }
+      }
+      this.recognition.onerror = (e) => done(null, new Error(e.error))
+      this.recognition.onend = () => done(finalText, new Error('Nenhum áudio detectado'))
       this.recognition.start()
     })
   },

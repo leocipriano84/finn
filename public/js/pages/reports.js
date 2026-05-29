@@ -14,8 +14,8 @@ export async function render(el) {
     const s = document.createElement('style')
     s.id = 'report-chip-style'
     s.textContent = `
-      .r-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--color-border);background:var(--color-card);color:var(--color-text-soft);font-size:13px;cursor:pointer;transition:all 150ms;white-space:nowrap}
-      .r-chip.active{background:var(--color-green);color:#050508;border-color:var(--color-green)}
+      .r-chip{padding:8px 18px;border-radius:20px;border:1.5px solid var(--color-border);background:transparent;color:var(--color-text-soft);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap}
+      .r-chip.active{background:var(--color-green);color:#050508;border-color:var(--color-green);font-weight:600}
       .r-chip:hover:not(.active){border-color:var(--color-text-muted);color:var(--color-text)}
       .r-filter-section{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
       .r-filter-label{font-size:11px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;min-width:90px}

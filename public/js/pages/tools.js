@@ -199,14 +199,29 @@ function attachOFXEvents(el) {
 function processOFX(file) {
   const reader = new FileReader()
   reader.onload = e => {
+    const text = e.target.result
+    // Detecta mojibake de UTF-8 mal interpretado como latin1 (ex: Ã§ Ã£ Ã©)
+    if (/Ã[§£©ª«¬­®¯°¡¢£¤¥¦§¨©ª«]/.test(text) || /Ã\s/.test(text)) {
+      const reader2 = new FileReader()
+      reader2.onload = e2 => {
+        try {
+          const txs = parseOFX(e2.target.result)
+          showOFXPreview(txs)
+        } catch {
+          Toast.error('Arquivo OFX inválido ou não suportado')
+        }
+      }
+      reader2.readAsText(file, 'ISO-8859-1')
+      return
+    }
     try {
-      const txs = parseOFX(e.target.result)
+      const txs = parseOFX(text)
       showOFXPreview(txs)
     } catch {
       Toast.error('Arquivo OFX inválido ou não suportado')
     }
   }
-  reader.readAsText(file, 'latin1')
+  reader.readAsText(file, 'UTF-8')
 }
 
 function parseOFX(text) {

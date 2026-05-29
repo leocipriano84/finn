@@ -115,6 +115,10 @@
   --color-blue-dim: rgba(0, 201, 255, 0.12);
   --color-red: #FF6B6B;
   --color-red-dim: rgba(255, 107, 107, 0.12);
+  --color-income: #00C853;
+  --color-income-dim: rgba(0, 200, 83, 0.12);
+  --color-expense: #D50000;
+  --color-expense-dim: rgba(213, 0, 0, 0.12);
   --color-yellow: #FFD93D;
   --color-yellow-dim: rgba(255, 217, 61, 0.12);
   --color-purple: #A855F7;
