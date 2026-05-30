@@ -1,6 +1,7 @@
 import { endpoints } from '../core/api.js'
 import { store, cache } from '../core/store.js'
-import { fmt, BANKS, COLORS } from '../core/utils.js'
+import { fmt, COLORS } from '../core/utils.js'
+import { BANKS, bankLogoHTML, buildBankDropdownHTML } from '../core/banks.js'
 import { Toast, Confirm, Loading } from '../core/notifications.js'
 
 let unsubMonth = null
@@ -121,75 +122,6 @@ async function deleteAccount(id, name) {
   } catch (e) { Toast.error(e.message) }
 }
 
-function bankLogoHTML(b, size = 24) {
-  if (!b || b.code === 'other' || b.code === '000') {
-    return `<span style="font-size:${Math.round(size * 0.7)}px;line-height:${size}px">${b?.emoji || '🏦'}</span>`
-  }
-  const color = b.color || '#6B7280'
-  const letter = (b.name || '?').charAt(0).toUpperCase()
-  const lightBg = ['#F8D000','#FFD93D','#FDC300','#F5C400','#F9CC1B'].includes(color)
-  const textColor = lightBg ? '#000' : '#fff'
-  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:${color};color:${textColor};font-weight:700;font-size:${Math.round(size * 0.42)}px;font-family:sans-serif;flex-shrink:0;letter-spacing:-0.5px">${letter}</span>`
-}
-
-
-function buildBankDropdownHTML(containerId, selectedCode = '') {
-  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦', color: '#888' }
-  const items = BANKS.map(b => `
-    <div class="bank-dd-item" data-name="${b.name.toLowerCase()}" onclick="window.__selectBank('${containerId}','${b.code}','${b.name.replace(/'/g,"\\'")}')">
-      ${bankLogoHTML(b)}<span>${b.name}</span>
-    </div>`).join('')
-  return `
-    <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
-      <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleBankDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <span id="${containerId}-icon" style="display:flex;align-items:center">${bankLogoHTML(sel)}</span>
-        <span id="${containerId}-label" style="flex:1">${sel.name}</span>
-        <span style="color:var(--color-text-muted);font-size:10px">▾</span>
-      </div>
-      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.2)">
-        <div style="padding:8px;border-bottom:1px solid var(--color-border)">
-          <input type="text" placeholder="Buscar banco..." class="form-control" style="padding:6px 10px;font-size:13px" oninput="window.__filterBankDD('${containerId}',this.value)" onclick="event.stopPropagation()">
-        </div>
-        <div id="${containerId}-list" style="max-height:180px;overflow-y:auto">${items}</div>
-      </div>
-      <input type="hidden" id="${containerId}" value="${selectedCode}">
-    </div>
-  `
-}
-
-// Helpers globais para o dropdown de banco
-window.__toggleBankDD = function(id) {
-  const dd = document.getElementById(`${id}-dropdown`)
-  if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none'
-}
-window.__filterBankDD = function(id, query) {
-  const list = document.getElementById(`${id}-list`)
-  if (!list) return
-  const q = query.toLowerCase()
-  list.querySelectorAll('.bank-dd-item').forEach(item => {
-    item.style.display = !q || item.dataset.name.includes(q) ? 'flex' : 'none'
-  })
-}
-window.__selectBank = function(id, code, name) {
-  const bank = BANKS.find(b => b.code === code)
-  const hidden = document.getElementById(id)
-  const iconEl = document.getElementById(`${id}-icon`)
-  const labelEl = document.getElementById(`${id}-label`)
-  const dd = document.getElementById(`${id}-dropdown`)
-  if (hidden) hidden.value = code
-  if (iconEl && bank) iconEl.innerHTML = bankLogoHTML(bank)
-  if (labelEl) labelEl.textContent = name
-  if (dd) dd.style.display = 'none'
-  const nameInput = document.getElementById('accName')
-  if (nameInput && !nameInput.value && name !== 'Selecione...') nameInput.value = name
-}
-
-// Fechar dropdown ao clicar fora
-document.addEventListener('click', e => {
-  if (!e.target.closest('.bank-dd')) {
-    document.querySelectorAll('.bank-dd [id$="-dropdown"]').forEach(d => d.style.display = 'none')
-  }
-})
 
 function openAccountModal(id) {
   const accounts = store.get('accounts') || []

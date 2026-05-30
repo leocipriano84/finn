@@ -460,6 +460,13 @@ export async function openTransactionModal(opts = {}) {
 
   if (id) {
     existing = cachedTransactions.find(t => t.id === id) || null
+    // Se não tem join de categorias, buscar fresco com join
+    if (existing && !existing.categories) {
+      try {
+        const fresh = await endpoints.getTransaction(id)
+        if (fresh) existing = fresh
+      } catch {}
+    }
   }
 
   const accounts = store.get('accounts') || []

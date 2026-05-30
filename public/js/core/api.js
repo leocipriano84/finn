@@ -74,6 +74,7 @@ export const endpoints = {
 
   // Transactions
   transactions:    (p)     => api.get('/transactions', p),
+  getTransaction:  (id)    => api.get('/transactions', { id, single: '1' }),
   txSummary:       (p)     => api.get('/transactions', { action: 'summary', ...p }),
   createTx:        (d)     => api.post('/transactions', d),
   updateTx:        (id, d) => api.put(`/transactions?id=${id}`, d),

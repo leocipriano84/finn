@@ -1,6 +1,7 @@
 import { endpoints } from '../core/api.js'
 import { store, cache } from '../core/store.js'
-import { fmt, BANKS, COLORS, date } from '../core/utils.js'
+import { fmt, COLORS, date } from '../core/utils.js'
+import { BANKS, bankLogoHTML as cardBankLogoHTML, buildBankDropdownHTML as buildCardBankDropdownHTML } from '../core/banks.js'
 import { Toast, Confirm, Loading } from '../core/notifications.js'
 
 const FLAG_META = [
@@ -23,43 +24,6 @@ const FLAG_SVG = {
   other:      `<svg width="36" height="22" viewBox="0 0 36 22" style="vertical-align:middle;border-radius:3px"><rect width="36" height="22" rx="3" fill="#555"/><text x="18" y="15" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="8">card</text></svg>`,
 }
 
-function cardBankLogoHTML(b, size = 24) {
-  if (!b || b.code === 'other' || b.code === '000') {
-    return `<span style="font-size:${Math.round(size * 0.7)}px;line-height:${size}px">${b?.emoji || '🏦'}</span>`
-  }
-  const color = b.color || '#6B7280'
-  const letter = (b.name || '?').charAt(0).toUpperCase()
-  const lightBg = ['#F8D000','#FFD93D','#FDC300','#F5C400','#F9CC1B'].includes(color)
-  const textColor = lightBg ? '#000' : '#fff'
-  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:${color};color:${textColor};font-weight:700;font-size:${Math.round(size * 0.42)}px;font-family:sans-serif;flex-shrink:0;letter-spacing:-0.5px">${letter}</span>`
-}
-
-function buildCardBankDropdownHTML(containerId, selectedCode = '') {
-  const sel = BANKS.find(b => b.code === selectedCode) || { code: '', name: 'Selecione...', emoji: '🏦', color: '#888' }
-  const items = BANKS.map(b => `
-    <div class="bank-dd-item" data-name="${b.name.toLowerCase()}" onclick="window.__selectCardBank('${containerId}','${b.code}','${b.name.replace(/'/g,"\\'")}')">
-      ${cardBankLogoHTML(b)}<span>${b.name}</span>
-    </div>`).join('')
-  return `
-    <div class="bank-dd" id="${containerId}-wrap" style="position:relative">
-      <div class="bank-dd-trigger form-control" id="${containerId}-trigger" onclick="window.__toggleCardDD('${containerId}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
-        <span id="${containerId}-icon" style="display:flex;align-items:center">${cardBankLogoHTML(sel)}</span>
-        <span id="${containerId}-label" style="flex:1">${sel.name}</span>
-        <span style="color:var(--color-text-muted);font-size:10px">▾</span>
-      </div>
-      <div id="${containerId}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1000;background:var(--color-card);border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.2)">
-        <div style="padding:8px;border-bottom:1px solid var(--color-border)">
-          <input type="text" placeholder="Buscar banco..." class="form-control" style="padding:6px 10px;font-size:13px" oninput="window.__filterCardDD('${containerId}',this.value)" onclick="event.stopPropagation()">
-        </div>
-        <div id="${containerId}-list" style="max-height:180px;overflow-y:auto">${items}</div>
-      </div>
-      <input type="hidden" id="${containerId}" value="${selectedCode}">
-    </div>`
-}
-
-function buildCardFlagDropdownHTML(containerId, selectedId = 'other') {
-  const sel = FLAG_META.find(f => f.id === selectedId) || FLAG_META[FLAG_META.length - 1]
-  const items = FLAG_META.map(f => `
     <div class="bank-dd-item" onclick="window.__selectCardFlag('${containerId}','${f.id}','${f.name.replace(/'/g,"\\'")}')">
       ${FLAG_SVG[f.id] || f.emoji}<span style="margin-left:8px">${f.name}</span>
     </div>`).join('')

@@ -87,10 +87,23 @@ export default async function handler(req, res) {
       return res.status(200).send('﻿' + csv)
     }
 
-    // List
-    const { month, year, type, status, category, search, page = 1, limit = 50, date_start, date_end } = req.query
+    // Single transaction fetch (with join)
+    if (req.query.single === '1' && req.query.id) {
+      const { data, error } = await supabase.from('transactions')
+        .select('*, categories(id,name,icon,color), accounts(id,name), credit_cards(id,name)')
+        .eq('id', req.query.id)
+        .eq('user_id', userId)
+        .single()
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(200).json(data)
+    }
 
-    let query = supabase.from('transactions').select('*').eq('user_id', userId)
+    // List
+    const { month, year, type, status, category, search, page = 1, limit = 50, date_start, date_end, recurrence_group_id } = req.query
+
+    let query = supabase.from('transactions')
+      .select('*, categories(id,name,icon,color), accounts(id,name), credit_cards(id,name)')
+      .eq('user_id', userId)
 
     if (month || year) {
       let monthKey
@@ -106,8 +119,10 @@ export default async function handler(req, res) {
     if (date_start) query = query.gte('date', date_start)
     if (date_end)   query = query.lte('date', date_end)
     if (type && type !== 'all') query = query.eq('type', type)
+    if (status) query = query.eq('status', status)
     if (category && category !== 'all') query = query.eq('category', category)
     if (search) query = query.ilike('description', `%${search}%`)
+    if (recurrence_group_id) query = query.eq('recurrence_group_id', recurrence_group_id)
 
     query = query.order('date', { ascending: false }).order('created_at', { ascending: false })
     query = query.range((Number(page)-1) * Number(limit), Number(page) * Number(limit) - 1)
