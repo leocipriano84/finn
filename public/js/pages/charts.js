@@ -199,9 +199,9 @@ function renderBarChart(canvasId, monthly, color = '#00C853') {
     const barH = (m.total / max) * (h - 30)
     const x = 10 + i * ((w - 20) / monthly.length)
     const y = h - 20 - barH
-    ctx.fillStyle = color + '99'
+    ctx.fillStyle = color
     ctx.beginPath(); ctx.roundRect?.(x, y, barW, barH, 3) || ctx.rect(x, y, barW, barH); ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
     ctx.fillText(m.month.slice(5), x + barW/2, h - 6)
   })
 }

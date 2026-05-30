@@ -32,7 +32,7 @@ function buildPage() {
   if (!document.getElementById('tx-tabs-fix')) {
     const s = document.createElement('style')
     s.id = 'tx-tabs-fix'
-    s.textContent = `[data-filter-type="expense"].active,.tab-expense.active{color:#D50000!important;border-bottom-color:#D50000!important}[data-filter-type="income"].active,.tab-income.active{color:#00C853!important;border-bottom-color:#00C853!important}`
+    s.textContent = `[data-filter-type="expense"].active,.tab-expense.active{color:#D50000!important;border-bottom-color:#D50000!important}[data-filter-type="income"].active,.tab-income.active{color:#00C853!important;border-bottom-color:#00C853!important}[data-filter-type="all"].active{color:#00C9FF!important;border-bottom-color:#00C9FF!important}`
     document.head.appendChild(s)
   }
   return `
@@ -516,10 +516,18 @@ export async function openTransactionModal(opts = {}) {
     // Categorias já estavam em cache — forçar seleção após render completo
     setTimeout(() => {
       const catSel = overlay.querySelector('#txCategory')
-      if (catSel && existing.category_id) {
+      if (!catSel) return
+      const hasOption = Array.from(catSel.options).some(o => o.value === existing.category_id)
+      if (!hasOption) {
+        const opt = document.createElement('option')
+        opt.value = existing.category_id
+        opt.textContent = existing.categories?.name || existing.category_name || 'Categoria'
+        opt.selected = true
+        catSel.appendChild(opt)
+      } else {
         catSel.value = existing.category_id
-        catSel.dispatchEvent(new Event('change'))
       }
+      catSel.dispatchEvent(new Event('change'))
     }, 50)
   }
 

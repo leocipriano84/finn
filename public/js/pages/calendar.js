@@ -126,11 +126,41 @@ function renderCalendar(el, year, month, txs) {
   `
 
   el.querySelectorAll('[data-cal-day]').forEach(cell => {
-    cell.addEventListener('click', () => {
+    cell.addEventListener('click', (e) => {
+      // Remover popups existentes
+      document.querySelectorAll('.cal-popup').forEach(p => p.remove())
+
       el.querySelectorAll('[data-cal-day]').forEach(c => c.style.outline = '')
       cell.style.outline = '2px solid var(--color-green)'
       const day = parseInt(cell.dataset.calDay)
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+
+      // Mostrar detalhe abaixo
       showDayDetail(day, year, month, byDay[day] || [])
+
+      // Popup inline com opções de tipo
+      const popup = document.createElement('div')
+      popup.className = 'cal-popup'
+      popup.style.cssText = 'position:absolute;z-index:200;background:var(--color-card);border:1px solid var(--color-border);border-radius:8px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,0.25);min-width:148px'
+      popup.innerHTML = `
+        <div class="cal-action" data-type="expense">➖ Despesa</div>
+        <div class="cal-action" data-type="expense_card">💳 Cartão</div>
+        <div class="cal-action" data-type="income">➕ Receita</div>
+        <div class="cal-action" data-type="transfer">↕️ Transferência</div>
+      `
+      popup.querySelectorAll('.cal-action').forEach(btn => {
+        btn.style.cssText = 'padding:7px 12px;cursor:pointer;border-radius:6px;font-size:12px;color:var(--color-text)'
+        btn.addEventListener('mouseenter', () => { btn.style.background = 'var(--color-card-hover)' })
+        btn.addEventListener('mouseleave', () => { btn.style.background = '' })
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          popup.remove()
+          window.openNewTransaction?.({ type: btn.dataset.type, due_date: dateStr })
+        })
+      })
+      cell.style.position = 'relative'
+      cell.appendChild(popup)
+      setTimeout(() => document.addEventListener('click', () => popup.remove(), { once: true }), 0)
     })
   })
 

@@ -14,7 +14,7 @@ export async function render(el) {
     const s = document.createElement('style')
     s.id = 'report-chip-style'
     s.textContent = `
-      .r-chip{padding:8px 18px;border-radius:20px;border:1.5px solid var(--color-border);background:transparent;color:var(--color-text-soft);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap}
+      .r-chip{padding:5px 14px;border-radius:20px;border:1.5px solid var(--color-border);background:transparent;color:var(--color-text-soft);font-size:12px;font-weight:500;cursor:pointer;transition:all 150ms;white-space:nowrap;display:inline-flex;align-items:center;gap:0}
       .r-chip.active{background:var(--color-green);color:#050508;border-color:var(--color-green);font-weight:600}
       .r-chip:hover:not(.active){border-color:var(--color-text-muted);color:var(--color-text);background:var(--color-card-hover)}
       [data-report-type="expense"].active{background:#D50000!important;color:#fff!important;border-color:#D50000!important}
@@ -34,9 +34,9 @@ export async function render(el) {
         <div class="r-filter-section">
           <span class="r-filter-label">Tipo</span>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="r-chip active" data-report-type="expense">🔴 Despesas</button>
-            <button class="r-chip" data-report-type="income">🟢 Receitas</button>
-            <button class="r-chip" data-report-type="all">🔵 Todas</button>
+            <button class="r-chip active" data-report-type="expense">Despesas</button>
+            <button class="r-chip" data-report-type="income">Receitas</button>
+            <button class="r-chip" data-report-type="all">Todas</button>
           </div>
         </div>
         <!-- Status -->
