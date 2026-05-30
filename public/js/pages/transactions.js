@@ -144,11 +144,23 @@ async function loadTransactions() {
   }
 }
 
+function buildCatMap() {
+  const cats = store.get('categories') || []
+  const map = {}
+  cats.forEach(c => {
+    map[c.id] = c
+    if (c.children) c.children.forEach(sc => { map[sc.id] = sc })
+  })
+  return map
+}
+
 function renderList(el, txs) {
   if (!txs.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">Nenhum lançamento</div><p class="empty-state-msg">Clique em "+ Novo" para adicionar</p></div>`
     return
   }
+
+  const catMap = buildCatMap()
 
   // Agrupa por data
   const grouped = groupBy(txs, t => t.due_date || t.date)
@@ -170,7 +182,7 @@ function renderList(el, txs) {
             ${dayTotal < 0 ? fmt.currency(dayTotal) : ''}
           </span>
         </div>
-        ${dayTxs.map(t => transactionItem(t)).join('')}
+        ${dayTxs.map(t => transactionItem(t, catMap)).join('')}
       </div>
     `
   }).join('')
@@ -205,7 +217,7 @@ function renderList(el, txs) {
   })
 }
 
-function transactionItem(t) {
+function transactionItem(t, catMap = {}) {
   const isExpense = t.type === 'expense' || t.type === 'expense_card'
   const isIncome  = t.type === 'income'
   const isProjected = t._isProjected === true
@@ -215,7 +227,7 @@ function transactionItem(t) {
   const isOverdue  = isPending && txDate < today
   const isDueSoon  = isPending && !isOverdue && txDate <= date.addDays(today, 3)
 
-  const cat = t.categories || null
+  const cat = (t.category_id ? catMap[t.category_id] : null) || t.categories || null
   const acc = t.accounts || t.credit_cards || null
   const statusIcon = isProjected ? '🔮' : (isPending ? (isOverdue ? '🔴' : '⏰') : '✅')
 
@@ -234,7 +246,7 @@ function transactionItem(t) {
           ${statusIcon}
           ${isProjected ? `<span class="badge badge-yellow" style="font-size:10px;padding:1px 6px;margin-left:2px">Previsto</span>` : ''}
           ${acc?.name ? `<span>${acc.name}</span>` : ''}
-          ${cat?.name ? `<span>${cat.name}</span>` : ''}
+          ${cat?.name ? `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:10px;font-size:11px;background:${cat.color ? cat.color + '22' : 'var(--color-card-hover)'};color:${cat.color || 'var(--color-text-soft)'}">${cat.icon ? cat.icon + ' ' : ''}${cat.name}</span>` : ''}
           ${recText ? `<span style="color:var(--color-blue)">${recText}</span>` : ''}
         </div>
       </div>

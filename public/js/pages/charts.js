@@ -78,7 +78,7 @@ function renderCharts(el, data, evolution, type) {
       <div class="card">
         <div class="card-header"><span class="card-title">Evolução diária</span><span class="text-xs text-soft">últimos 7 dias</span></div>
         <div style="height:120px;position:relative;overflow:hidden">
-          <canvas id="dailyChart" width="300" height="120" style="width:100%;height:100%"></canvas>
+          <canvas id="dailyChart" style="width:100%;height:100%;display:block"></canvas>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ function renderCharts(el, data, evolution, type) {
         <div class="card-header"><span class="card-title">Por categoria</span></div>
         <div style="display:flex;align-items:center;gap:20px">
           <div style="position:relative;width:120px;height:120px;flex-shrink:0">
-            <canvas id="catDonut" width="120" height="120"></canvas>
+            <canvas id="catDonut" style="width:120px;height:120px;display:block"></canvas>
             <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none">
               <div style="font-size:var(--text-xs);color:var(--color-text-soft)">Total</div>
               <div style="font-size:var(--text-sm);font-weight:700;font-family:var(--font-mono)">${fmt.currency(total, true)}</div>
@@ -109,7 +109,7 @@ function renderCharts(el, data, evolution, type) {
       <div class="card" style="grid-column:1/-1">
         <div class="card-header"><span class="card-title">Últimos 6 meses</span></div>
         <div style="height:220px;overflow:hidden;position:relative;min-height:220px">
-          <canvas id="monthlyChart" width="600" height="220" style="width:100%;height:100%;display:block"></canvas>
+          <canvas id="monthlyChart" style="width:100%;height:100%;display:block"></canvas>
         </div>
       </div>
 
@@ -118,7 +118,7 @@ function renderCharts(el, data, evolution, type) {
       <div class="card" style="grid-column:1/-1">
         <div class="card-header"><span class="card-title">Receitas × Despesas ${new Date().getFullYear()}</span></div>
         <div style="height:220px;overflow:hidden;position:relative;min-height:220px">
-          <canvas id="evolutionChart" width="600" height="220" style="width:100%;height:100%;display:block"></canvas>
+          <canvas id="evolutionChart" style="width:100%;height:100%;display:block"></canvas>
         </div>
       </div>
       ` : ''}
@@ -157,8 +157,10 @@ function renderLineChart(canvasId, daily, color = '#00C853') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !daily?.length) return
   canvas.style.background = 'transparent'
-  canvas.width = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 300
-  canvas.height = canvas.offsetHeight || 120
+  canvas.removeAttribute('width'); canvas.removeAttribute('height')
+  const rect = canvas.parentElement?.getBoundingClientRect() || {}
+  canvas.width  = rect.width  || canvas.offsetWidth  || 300
+  canvas.height = rect.height || canvas.offsetHeight || 120
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
   const max = Math.max(...daily.map(d => d.total), 1)
@@ -178,33 +180,46 @@ function renderLineChart(canvasId, daily, color = '#00C853') {
   ctx.stroke()
 }
 
-function renderBarChart(canvasId, monthly, color = '#00C853') {
+function renderBarChart(canvasId, monthly, color = '#D50000') {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !monthly?.length) return
   canvas.style.background = 'transparent'
+  canvas.removeAttribute('width')
+  canvas.removeAttribute('height')
   const container = canvas.parentElement
   if (container) {
-    container.style.position = 'relative'
-    container.style.height = '220px'
-    container.style.minHeight = '220px'
-    container.style.overflow = 'hidden'
     container.style.background = 'transparent'
+    container.style.position = 'relative'
+    container.style.overflow = 'hidden'
   }
-  canvas.width = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 600
-  canvas.height = canvas.offsetHeight || 220
+  const rect = container ? container.getBoundingClientRect() : {}
+  canvas.width  = rect.width  || canvas.offsetWidth  || 600
+  canvas.height = rect.height || canvas.offsetHeight || 220
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
-  const max = Math.max(...monthly.map(m => m.total), 1)
-  const barW = (w - 20) / monthly.length - 4
   ctx.clearRect(0, 0, w, h)
+  const max = Math.max(...monthly.map(m => m.total), 1)
+  const gap = 4
+  const barW = (w - 20) / monthly.length - gap
+  const monthNames = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
   monthly.forEach((m, i) => {
-    const barH = (m.total / max) * (h - 30)
+    const barH = Math.max((m.total / max) * (h - 35), m.total > 0 ? 2 : 0)
     const x = 10 + i * ((w - 20) / monthly.length)
-    const y = h - 20 - barH
+    const y = h - 25 - barH
     ctx.fillStyle = color
-    ctx.beginPath(); ctx.roundRect?.(x, y, barW, barH, 3) || ctx.rect(x, y, barW, barH); ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText(m.month.slice(5), x + barW/2, h - 6)
+    ctx.beginPath()
+    if (ctx.roundRect) ctx.roundRect(x, y, barW, barH, 4)
+    else ctx.rect(x, y, barW, barH)
+    ctx.fill()
+    const [, mm] = (m.month || '').split('-')
+    const label = mm ? monthNames[parseInt(mm) - 1] : m.month?.slice(5) || ''
+    ctx.fillStyle = 'rgba(128,128,128,0.8)'; ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center'
+    ctx.fillText(label, x + barW / 2, h - 8)
+    if (barH > 20 && barW > 30) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = '9px system-ui'
+      const val = m.total >= 1000 ? `${(m.total/1000).toFixed(1)}k` : String(Math.round(m.total))
+      ctx.fillText(val, x + barW / 2, y + 12)
+    }
   })
 }
 
@@ -212,8 +227,10 @@ function renderDualLineChart(canvasId, data) {
   const canvas = document.getElementById(canvasId)
   if (!canvas || !data?.length) return
   canvas.style.background = 'transparent'
-  canvas.width = canvas.offsetWidth || canvas.parentElement?.offsetWidth || 600
-  canvas.height = canvas.offsetHeight || 220
+  canvas.removeAttribute('width'); canvas.removeAttribute('height')
+  const rect = canvas.parentElement?.getBoundingClientRect() || {}
+  canvas.width  = rect.width  || canvas.offsetWidth  || 600
+  canvas.height = rect.height || canvas.offsetHeight || 220
   const ctx = canvas.getContext('2d')
   const w = canvas.width, h = canvas.height
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expense]), 1)

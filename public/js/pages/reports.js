@@ -159,6 +159,10 @@ async function loadReport() {
 
 function renderReport(el, catsData, txs, type, groupBy) {
   const { categories, total } = catsData
+  const allCats = store.get('categories') || []
+  const catMap = {}
+  allCats.forEach(c => { catMap[c.id] = c; if (c.children) c.children.forEach(sc => { catMap[sc.id] = sc }) })
+  txs = txs.map(t => ({ ...t, categories: (t.category_id ? catMap[t.category_id] : null) || t.categories || null }))
 
   const grouped = groupBy !== 'none' ? groupTransactions(txs, groupBy) : null
 

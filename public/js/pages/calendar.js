@@ -192,6 +192,10 @@ function showDayDetail(day, year, month, txs) {
     return
   }
 
+  const allCats = store.get('categories') || []
+  const catMap = {}
+  allCats.forEach(c => { catMap[c.id] = c; if (c.children) c.children.forEach(sc => { catMap[sc.id] = sc }) })
+
   const totalIncome = txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
   const totalExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
 
@@ -208,21 +212,24 @@ function showDayDetail(day, year, month, txs) {
         </div>
       </div>
       <div class="transaction-list">
-        ${txs.map(t => `
+        ${txs.map(t => {
+          const cat = (t.category_id ? catMap[t.category_id] : null) || t.categories || null
+          return `
           <div class="transaction-item">
-            <div class="transaction-icon" style="background:${t.categories?.color ? t.categories.color + '22' : 'var(--color-card-hover)'}">
-              ${t.categories?.icon || (t.type === 'income' ? '💰' : '💸')}
+            <div class="transaction-icon" style="background:${cat?.color ? cat.color + '22' : 'var(--color-card-hover)'}">
+              ${cat?.icon || (t.type === 'income' ? '💰' : '💸')}
             </div>
             <div class="transaction-info">
               <div class="transaction-desc">${t.description}</div>
-              <div class="transaction-sub">${t.categories?.name || 'Sem categoria'}</div>
+              <div class="transaction-sub">${cat?.name ? `<span style="padding:1px 6px;border-radius:8px;font-size:11px;background:${cat.color ? cat.color + '22' : 'var(--color-card-hover)'};color:${cat.color || 'inherit'}">${cat.name}</span>` : 'Sem categoria'}</div>
             </div>
             <div class="transaction-meta">
               <div class="transaction-amount ${t.type === 'income' ? 'value-positive' : 'value-negative'}">${t.type === 'income' ? '+' : '-'}${fmt.currency(t.amount)}</div>
               <div class="badge ${t.status === 'confirmed' ? 'badge-green' : 'badge-yellow'}" style="margin-top:2px;font-size:10px">${t.status === 'confirmed' ? 'Efetivado' : 'Pendente'}</div>
             </div>
           </div>
-        `).join('')}
+        `
+        }).join('')}
       </div>
     </div>
   `

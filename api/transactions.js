@@ -87,10 +87,10 @@ export default async function handler(req, res) {
       return res.status(200).send('﻿' + csv)
     }
 
-    // Single transaction fetch (with join)
+    // Single transaction fetch
     if (req.query.single === '1' && req.query.id) {
       const { data, error } = await supabase.from('transactions')
-        .select('*, categories(id,name,icon,color), accounts(id,name), credit_cards(id,name)')
+        .select('*, accounts(id,name), credit_cards(id,name)')
         .eq('id', req.query.id)
         .eq('user_id', userId)
         .single()
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
     const { month, year, type, status, category, search, page = 1, limit = 50, date_start, date_end, recurrence_group_id } = req.query
 
     let query = supabase.from('transactions')
-      .select('*, categories(id,name,icon,color), accounts(id,name), credit_cards(id,name)')
+      .select('*, accounts(id,name), credit_cards(id,name)')
       .eq('user_id', userId)
 
     if (month || year) {
